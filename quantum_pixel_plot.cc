@@ -94,6 +94,9 @@ void PixelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
     if (option.state & QStyle::State_Selected)
         painter->fillRect(option.rect, option.palette.highlight());
 
+#ifdef SIMPLE_PIXEL
+    painter->fillRect(option.rect, index.model()->data(index, Qt::DisplayRole).value<QRgb>());    
+#else
     int size = qMin(option.rect.width(), option.rect.height());
     QRgb color = index.model()->data(index, Qt::DisplayRole).value<QRgb>();
     double radius = size/2.0;
@@ -110,6 +113,7 @@ void PixelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
                 option.rect.y() + option.rect.height()/2 - radius,
                 2*radius, 2*radius));
     painter->restore();
+#endif
 }
 
 QSize PixelDelegate::sizeHint(const QStyleOptionViewItem & /* option */,
