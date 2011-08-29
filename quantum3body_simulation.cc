@@ -34,8 +34,8 @@ Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY, Poten
     fftw_complex* momentum = reinterpret_cast<fftw_complex*>(&_momentum.front());
 
     // initialize the plan and determine the optimal method to calculate based on the size
-    _fftPlanForward  = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), spatial, momentum, FFTW_FORWARD, FFTW_ESTIMATE); // use FFTW_MEASURE once it gets real
-    _fftPlanBackward = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), momentum, spatial, FFTW_BACKWARD, FFTW_ESTIMATE); // use FFTW_MEASURE once it gets real
+    _fftPlanForward  = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), spatial, momentum, FFTW_FORWARD, FFTW_MEASURE); // use FFTW_MEASURE once it gets real
+    _fftPlanBackward = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), momentum, spatial, FFTW_BACKWARD, FFTW_MEASURE); // use FFTW_MEASURE once it gets real
 
 
     // Trafo in X
@@ -52,8 +52,8 @@ Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY, Poten
         int ostride = istride;
         int* onembed = NULL;
 
-        _fftPlanForwardX  = fftw_plan_many_dft(rank, n, howmany, spatial, inembed, istride, idist, momentum, onembed, ostride, odist, FFTW_FORWARD, FFTW_ESTIMATE);
-        _fftPlanBackwardX = fftw_plan_many_dft(rank, n, howmany, momentum, inembed, istride, idist, spatial, onembed, ostride, odist, FFTW_BACKWARD, FFTW_ESTIMATE);
+        _fftPlanForwardX  = fftw_plan_many_dft(rank, n, howmany, spatial, inembed, istride, idist, momentum, onembed, ostride, odist, FFTW_FORWARD, FFTW_MEASURE);
+        _fftPlanBackwardX = fftw_plan_many_dft(rank, n, howmany, momentum, inembed, istride, idist, spatial, onembed, ostride, odist, FFTW_BACKWARD, FFTW_MEASURE);
     }
     // Trafo in Y
     {
@@ -69,8 +69,8 @@ Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY, Poten
         int ostride = istride;
         int* onembed = NULL;
 
-        _fftPlanForwardY  = fftw_plan_many_dft(rank, n, howmany, spatial, inembed, istride, idist, momentum, onembed, ostride, odist, FFTW_FORWARD, FFTW_ESTIMATE);
-        _fftPlanBackwardY = fftw_plan_many_dft(rank, n, howmany, momentum, inembed, istride, idist, spatial, onembed, ostride, odist, FFTW_BACKWARD, FFTW_ESTIMATE);
+        _fftPlanForwardY  = fftw_plan_many_dft(rank, n, howmany, spatial, inembed, istride, idist, momentum, onembed, ostride, odist, FFTW_FORWARD, FFTW_MEASURE);
+        _fftPlanBackwardY = fftw_plan_many_dft(rank, n, howmany, momentum, inembed, istride, idist, spatial, onembed, ostride, odist, FFTW_BACKWARD, FFTW_MEASURE);
     }
     
 }
@@ -198,7 +198,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
+            _spatial[j + (_sizeY*i)] = spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
         }
     }
 
@@ -220,7 +220,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            momentumEvolve(_momentum[j + (_sizeY*i)], _kx[i], _ky[j]);
+            _momentum[j + (_sizeY*i)] = momentumEvolve(_momentum[j + (_sizeY*i)], _kx[i], _ky[j]);
         }
     }
 
@@ -238,7 +238,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            momentumEvolveX(_momentum[j + (_sizeY*i)], _kx[i], _y[j]);
+            _momentum[j + (_sizeY*i)] = momentumEvolveX(_momentum[j + (_sizeY*i)], _kx[i], _y[j]);
         }
     }
 
@@ -252,7 +252,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            momentumEvolveY(_momentum[j + (_sizeY*i)], _x[i], _ky[j]);
+            _momentum[j + (_sizeY*i)] = momentumEvolveY(_momentum[j + (_sizeY*i)], _x[i], _ky[j]);
         }
     }
     fftw_execute(_fftPlanBackwardY);
@@ -267,7 +267,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
+            _spatial[j + (_sizeY*i)] = spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
         }
     }
 
