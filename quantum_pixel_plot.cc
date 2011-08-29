@@ -86,7 +86,7 @@ QVariant QuantumPixelPlot::headerData(int /* section */,
 PixelDelegate::PixelDelegate(QObject *parent)
     : QAbstractItemDelegate(parent)
 {
-    pixelSize = 12;
+    pixelSize = 4;
 }
 
 void PixelDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
