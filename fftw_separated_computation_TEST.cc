@@ -35,7 +35,6 @@ int main(int, char**)
 
     fftw_complex* fftw_momentum           = reinterpret_cast<fftw_complex*>(&momentum.front());
     fftw_complex* fftw_momentumSeparatedX = reinterpret_cast<fftw_complex*>(&momentumSeparatedX.front());
-    fftw_complex* fftw_spatialAfterX      = reinterpret_cast<fftw_complex*>(&spatialAfterX.front());
     fftw_complex* fftw_momentumSeparatedY = reinterpret_cast<fftw_complex*>(&momentumSeparatedY.front());
 
     // initialize the plan and determine the optimal method to calculate based on the size
@@ -71,7 +70,7 @@ int main(int, char**)
         int ostride = istride;
         int* onembed = NULL;
 
-        planForwardY = fftw_plan_many_dft(rank, n, howmany, fftw_spatialAfterX, inembed, istride, idist, fftw_momentumSeparatedY, onembed, ostride, odist, FFTW_FORWARD, FFTW_ESTIMATE);
+        planForwardY = fftw_plan_many_dft(rank, n, howmany, fftw_momentumSeparatedX, inembed, istride, idist, fftw_momentumSeparatedY, onembed, ostride, odist, FFTW_FORWARD, FFTW_ESTIMATE);
     }
      
     const double delta_x(1.0/sqrt(static_cast<double>(sizeX)));
@@ -98,34 +97,23 @@ int main(int, char**)
     fftw_execute(planForwardX);
     for (auto& f: momentumSeparatedX) { f /= sqrt(static_cast<double>(sizeX)); }
 
-    // TODO: ...
-    for (size_t i(0); i < gridSize/2; ++i)
-    {
-        amplitude[i] = fabs(f_momentum[gridSize/2 + i]);
-        real[i] = f_momentum[gridSize/2 + i].real();
-        imag[i] = f_momentum[gridSize/2 + i].imag();
-
-        amplitude[i+gridSize/2] = fabs(f_momentum[i]);
-        real[i+gridSize/2] = f_momentum[i].real();
-        imag[i+gridSize/2] = f_momentum[i].imag();
-    }
-
     fftw_execute(planForwardY);
     for (auto& f: momentumSeparatedY) { f /= sqrt(static_cast<double>(sizeY)); }
     
     size_t differences(0);
     for (size_t i(0); i < sizeX*sizeY; ++i)
     {
-        double abs_diff(abs(momentumSeparatedX[i]*momentumSeparatedY[i] - momentum[i]));
+        double abs_diff(abs(momentumSeparatedY[i] - momentum[i]));
         if (abs_diff > std::numeric_limits<double>::epsilon())
         {
+            std::cout << "difference found: " << abs_diff << " @" << i << std::endl;
             ++differences;
         }
     }
     std::cout << "number of differences: " << differences << std::endl;
 
-    fftw_free(planForward);
-    fftw_free(planForwardX);
-    fftw_free(planForwardY);
+    fftw_destroy_plan(planForward);
+    fftw_destroy_plan(planForwardX);
+    fftw_destroy_plan(planForwardY);
     return 0;
 }
