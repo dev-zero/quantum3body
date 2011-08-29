@@ -51,6 +51,9 @@ private:
     std::vector<double> _x, _y, _kx, _ky;
     std::vector<complex> _spatial, _momentum;
     fftw_plan _fftPlanForward, _fftPlanBackward;
+    fftw_plan _fftPlanForwardX, _fftPlanBackwardX;
+    fftw_plan _fftPlanForwardY, _fftPlanBackwardY;
+ 
 };
 
 #endif // QUANTUM3BODY_SIMULATION_HH

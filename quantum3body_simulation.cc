@@ -34,14 +34,55 @@ Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY, Poten
     fftw_complex* momentum = reinterpret_cast<fftw_complex*>(&_momentum.front());
 
     // initialize the plan and determine the optimal method to calculate based on the size
-    _fftPlanForward = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), spatial, momentum, FFTW_FORWARD, FFTW_ESTIMATE); // use FFTW_MEASURE once it gets real
+    _fftPlanForward  = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), spatial, momentum, FFTW_FORWARD, FFTW_ESTIMATE); // use FFTW_MEASURE once it gets real
     _fftPlanBackward = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), momentum, spatial, FFTW_BACKWARD, FFTW_ESTIMATE); // use FFTW_MEASURE once it gets real
+
+
+    // Trafo in X
+    {
+        int rank = 1; // 1-Dimensional
+        int n[] = { static_cast<int>(sizeX)}; // number of elements in each rank, 1 rank => one element in this array, value = sizeX
+        int howmany = static_cast<int>(sizeY); // how many arrays with constant y are there? => sizeY
+        int* inembed = NULL; // if the input array are embedded in larger rank arrays (???)
+        int istride = static_cast<int>(sizeY); // the values of x are located at 1*i_y + sizeY*i_x, this is therefore sizeY
+        int idist = 1; // the distance between the first element of the first array and the first element of the second array (1)
+
+        // the output array is organized the same way
+        int odist = idist;
+        int ostride = istride;
+        int* onembed = NULL;
+
+        _fftPlanForwardX  = fftw_plan_many_dft(rank, n, howmany, spatial, inembed, istride, idist, momentum, onembed, ostride, odist, FFTW_FORWARD, FFTW_ESTIMATE);
+        _fftPlanBackwardX = fftw_plan_many_dft(rank, n, howmany, momentum, inembed, istride, idist, spatial, onembed, ostride, odist, FFTW_BACKWARD, FFTW_ESTIMATE);
+    }
+    // Trafo in Y
+    {
+        int rank = 1; // 1-Dimensional
+        int n[] = {static_cast<int>(sizeY)}; // number of elements in each rank, 1 rank => one element in this array, value = sizeY
+        int howmany = static_cast<int>(sizeX); // how many arrays with constant x are there? => sizeX
+        int* inembed = NULL; // if the input array are embedded in larger rank arrays (???)
+        int istride = 1; // the values of y are located at 1*i_y + sizeY*i_x, this is therefore 1
+        int idist = static_cast<int>(sizeY); // the distance between the first element of the first array and the first element of the second array (sizeY)
+
+        // the output array is organized the same way
+        int odist = idist;
+        int ostride = istride;
+        int* onembed = NULL;
+
+        _fftPlanForwardY  = fftw_plan_many_dft(rank, n, howmany, spatial, inembed, istride, idist, momentum, onembed, ostride, odist, FFTW_FORWARD, FFTW_ESTIMATE);
+        _fftPlanBackwardY = fftw_plan_many_dft(rank, n, howmany, momentum, inembed, istride, idist, spatial, onembed, ostride, odist, FFTW_BACKWARD, FFTW_ESTIMATE);
+    }
+    
 }
 
 Quantum3BodySimulation::~Quantum3BodySimulation()
 {
     fftw_destroy_plan(_fftPlanForward);
     fftw_destroy_plan(_fftPlanBackward);
+    fftw_destroy_plan(_fftPlanForwardX);
+    fftw_destroy_plan(_fftPlanBackwardX);
+    fftw_destroy_plan(_fftPlanForwardY);
+    fftw_destroy_plan(_fftPlanBackwardY);
 }
 
 void Quantum3BodySimulation::setInitial(std::function<complex (const double& x, const double& y)> initialPhi)
@@ -99,7 +140,12 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     auto momentumEvolve = [&](const complex& f, const double& kx, const double& ky)->complex {
         return f*exp(-0.5 * (kx*kx+ky*ky) * dt * complex(0, 1));
     };
-
+    auto momentumEvolveX = [&](const complex& f, const double& kx, const double&)->complex {
+        return f*exp(-0.5 * kx*kx * dt * complex(0, 1));
+    };
+    auto momentumEvolveY = [&](const complex& f, const double&, const double& ky)->complex {
+        return f*exp(-0.5 * ky*ky * dt * complex(0, 1));
+    };
 #if 1
     auto dump_spatial = [&](const std::string& identifier) {
         std::ofstream file("spatial.dump." + identifier);
@@ -114,7 +160,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
         }
     };
 #else
-    auto dump_spatial = [&](const std::string& identifier = "") {};
+    auto dump_spatial = [&](const std::string&) {};
 #endif
 
 #if 0
@@ -141,7 +187,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     };
 
 #else
-    auto dump_momentum = [&](const std::string& identifier = "") {};
+    auto dump_momentum = [&](const std::string&) {};
 #endif
 
     dump_spatial("01");
@@ -160,10 +206,12 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     // draw spatial here (or below with the momentum)
 
 //    std::cout << "forward fourier transformation" << std::endl;
+
+#if 0
     fftw_execute(_fftPlanForward);
     for (auto& f: _momentum) { f /= sqrt(static_cast<double>(_sizeX*_sizeY)); } // renormalize, TODO: integrate in evolve function
 
-    dump_momentum();
+    dump_momentum("01");
     // draw momentum (or both)
 
 //    std::cout << "momentum evolve" << std::endl;
@@ -176,12 +224,41 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
         }
     }
 
-
-    dump_momentum();
+    dump_momentum("02");
 
 //    std::cout << "backward fourier transformation" << std::endl;
     fftw_execute(_fftPlanBackward);
     for (auto& f: _spatial) { f /= sqrt(static_cast<double>(_sizeX*_sizeY)); } // renormalize, TODO: integrate in evolve function
+
+#else
+    fftw_execute(_fftPlanForwardX);
+    for (auto& f: _momentum) { f /= sqrt(static_cast<double>(_sizeX)); }
+    
+    for (size_t i(0); i < _sizeX; ++i)
+    {
+        for (size_t j(0); j < _sizeY; ++j)
+        {
+            momentumEvolveX(_momentum[j + (_sizeY*i)], _kx[i], _y[j]);
+        }
+    }
+
+    fftw_execute(_fftPlanBackwardX);
+    for (auto& f: _spatial) { f /= sqrt(static_cast<double>(_sizeX)); }
+
+    fftw_execute(_fftPlanForwardY);
+    for (auto& f: _momentum) { f /= sqrt(static_cast<double>(_sizeY)); }
+
+    for (size_t i(0); i < _sizeX; ++i)
+    {
+        for (size_t j(0); j < _sizeY; ++j)
+        {
+            momentumEvolveY(_momentum[j + (_sizeY*i)], _x[i], _ky[j]);
+        }
+    }
+    fftw_execute(_fftPlanBackwardY);
+    for (auto& f: _spatial) { f /= sqrt(static_cast<double>(_sizeY)); }
+
+#endif
 
     dump_spatial("03");
 
