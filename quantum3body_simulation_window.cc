@@ -18,8 +18,8 @@
 
 #include <algorithm>
 
-const static size_t gridSizeX(64);
-const static size_t gridSizeY(64);
+const static size_t gridSizeX(128);
+const static size_t gridSizeY(128);
 
 Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     QMainWindow(p),
@@ -29,8 +29,11 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
 {
     _ui->setupUi(this);
    
-    auto potential = [](const double& x, const double& y) { return 0.5*(x*x+y*y); };
+//    auto potential = [](const double& x, const double& y) { return 0.5*(x*x+y*y); }; // harmonic potential
+    auto potential = [](const double&, const double&) { return 0.0; }; // flat 0 potential
+
     _simulation = new Quantum3BodySimulation(gridSizeX, gridSizeY, potential);
+
     _spatialPlot = new QuantumPixelPlot(this);
     _ui->spatialPlot->setModel(_spatialPlot);
     PixelDelegate* delegate(new PixelDelegate(this));
@@ -42,8 +45,6 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     connect(_ui->reset, SIGNAL(pressed()), SLOT(resetSimulation()));
 
     resetSimulation();
-
-    _timer->setInterval(1);
 }
 
 Quantum3BodySimulationWindow::~Quantum3BodySimulationWindow()
@@ -56,9 +57,10 @@ void Quantum3BodySimulationWindow::resetSimulation()
 {
     auto phi0 = [](const double& x, const double& y)->complex { return exp(-0.5*(x*x+y*y)); };
     _simulation->setInitial(phi0);
+    _currentIteration = 0;
+    _ui->currentIteration->setValue(_currentIteration);
 
-    if (_currentIteration % _ui->updatePlotSteps->value() == 0)
-        plot();
+    plot();
 }
 
 void Quantum3BodySimulationWindow::runSimulation(bool run)
@@ -66,11 +68,7 @@ void Quantum3BodySimulationWindow::runSimulation(bool run)
     if (run)
         _timer->start();
     else
-    {
-        _currentIteration = 0;
-        _ui->currentIteration->setValue(_currentIteration);
         _timer->stop();
-    }
 }
 
 void Quantum3BodySimulationWindow::evolve()
@@ -79,7 +77,9 @@ void Quantum3BodySimulationWindow::evolve()
     _ui->currentIteration->setValue(_currentIteration);
 
     _simulation->evolveStep(_ui->dtParameter->value());
-    plot();
+
+    if (_currentIteration % _ui->updatePlotSteps->value() == 0)
+        plot();
 
     if (_currentIteration == _ui->numberOfIterations->value())
         _ui->run->setChecked(false);
