@@ -33,11 +33,6 @@ Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY, Poten
     fftw_complex* spatial  = reinterpret_cast<fftw_complex*>(&_spatial.front());
     fftw_complex* momentum = reinterpret_cast<fftw_complex*>(&_momentum.front());
 
-    // initialize the plan and determine the optimal method to calculate based on the size
-    _fftPlanForward  = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), spatial, momentum, FFTW_FORWARD, FFTW_MEASURE); // use FFTW_MEASURE once it gets real
-    _fftPlanBackward = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), momentum, spatial, FFTW_BACKWARD, FFTW_MEASURE); // use FFTW_MEASURE once it gets real
-
-
     // Trafo in X
     {
         int rank = 1; // 1-Dimensional
@@ -77,8 +72,6 @@ Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY, Poten
 
 Quantum3BodySimulation::~Quantum3BodySimulation()
 {
-    fftw_destroy_plan(_fftPlanForward);
-    fftw_destroy_plan(_fftPlanBackward);
     fftw_destroy_plan(_fftPlanForwardX);
     fftw_destroy_plan(_fftPlanBackwardX);
     fftw_destroy_plan(_fftPlanForwardY);
@@ -137,62 +130,13 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     auto spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
         return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
     };
-    auto momentumEvolve = [&](const complex& f, const double& kx, const double& ky)->complex {
-        return f*exp(-0.5 * (kx*kx+ky*ky) * dt * complex(0, 1));
-    };
     auto momentumEvolveX = [&](const complex& f, const double& kx, const double&)->complex {
         return f*exp(-0.5 * kx*kx * dt * complex(0, 1));
     };
     auto momentumEvolveY = [&](const complex& f, const double&, const double& ky)->complex {
         return f*exp(-0.5 * ky*ky * dt * complex(0, 1));
     };
-#if 1
-    auto dump_spatial = [&](const std::string& identifier) {
-        std::ofstream file("spatial.dump." + identifier);
-//        std::cout << "Spatial Data:" << std::endl;
-        for (size_t i(0); i < _sizeX; ++i)
-        {
-            for (size_t j(0); j < _sizeY; ++j)
-            {
-                file << _x[i] << " " << _y[j] << " " << abs(_spatial[j + _sizeY*i]) << std::endl;
-            }
-            file << std::endl;
-        }
-    };
-#else
-    auto dump_spatial = [&](const std::string&) {};
-#endif
 
-#if 0
-    auto dump_momentum = [&]() {
-        std::cout << "Momentum Data:" << std::endl;
-        for (size_t i(0); i < _size/2; ++i)
-        {
-//            std::cout << std::fixed << std::setprecision(6) << "k[" << i << "]=" << _k[i] << ", F(k)=" << _momentum[i] << std::endl;
-            std::cout << std::scientific
-                << _k[_size/2+i] << ","
-                << _momentum[_size/2+i].real() << ","
-                << _momentum[_size/2+i].imag() << ","
-                << std::endl;
-        }
-        for (size_t i(0); i < _size/2; ++i)
-        {
-//            std::cout << std::fixed << std::setprecision(6) << "k[" << i << "]=" << _k[i] << ", F(k)=" << _momentum[i] << std::endl;
-            std::cout << std::scientific
-                << _k[i] << ","
-                << _momentum[i].real() << ","
-                << _momentum[i].imag() << ","
-                << std::endl;
-        }
-    };
-
-#else
-    auto dump_momentum = [&](const std::string&) {};
-#endif
-
-    dump_spatial("01");
-
-//    std::cout << "spatial evolve" << std::endl;
     // f(x) *= exp(-0.5 * _V(x) * dt * i)
     for (size_t i(0); i < _sizeX; ++i)
     {
@@ -202,35 +146,6 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
         }
     }
 
-    dump_spatial("02");
-    // draw spatial here (or below with the momentum)
-
-//    std::cout << "forward fourier transformation" << std::endl;
-
-#if 0
-    fftw_execute(_fftPlanForward);
-    for (auto& f: _momentum) { f /= sqrt(static_cast<double>(_sizeX*_sizeY)); } // renormalize, TODO: integrate in evolve function
-
-    dump_momentum("01");
-    // draw momentum (or both)
-
-//    std::cout << "momentum evolve" << std::endl;
-    // f(x) *= exp(-0.5 * k^2 * dt * i)
-    for (size_t i(0); i < _sizeX; ++i)
-    {
-        for (size_t j(0); j < _sizeY; ++j)
-        {
-            _momentum[j + (_sizeY*i)] = momentumEvolve(_momentum[j + (_sizeY*i)], _kx[i], _ky[j]);
-        }
-    }
-
-    dump_momentum("02");
-
-//    std::cout << "backward fourier transformation" << std::endl;
-    fftw_execute(_fftPlanBackward);
-    for (auto& f: _spatial) { f /= sqrt(static_cast<double>(_sizeX*_sizeY)); } // renormalize, TODO: integrate in evolve function
-
-#else
     fftw_execute(_fftPlanForwardX);
     for (auto& f: _momentum) { f /= sqrt(static_cast<double>(_sizeX)); }
     
@@ -258,11 +173,6 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     fftw_execute(_fftPlanBackwardY);
     for (auto& f: _spatial) { f /= sqrt(static_cast<double>(_sizeY)); }
 
-#endif
-
-    dump_spatial("03");
-
-//    std::cout << "spatial evolve" << std::endl;
     for (size_t i(0); i < _sizeX; ++i)
     {
         for (size_t j(0); j < _sizeY; ++j)
@@ -270,6 +180,4 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
             _spatial[j + (_sizeY*i)] = spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
         }
     }
-
-    dump_spatial("04");
 }
