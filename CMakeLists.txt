@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(quantum3body)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wold-style-cast -Wredundant-decls -Wstrict-null-sentinel -Wmissing-noreturn -Woverloaded-virtual -Winit-self -Wunused -Wunused-function -Wshadow -Wwrite-strings -Wfloat-equal -Wconversion -pedantic -Wno-long-long -ggdb -std=c++0x")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wold-style-cast -Wredundant-decls -Wstrict-null-sentinel -Wmissing-noreturn -Woverloaded-virtual -Winit-self -Wunused -Wunused-function -Wshadow -Wwrite-strings -Wfloat-equal -Wconversion -pedantic -Wno-long-long -ggdb -std=c++0x -O2")
 
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTGUI TRUE)
