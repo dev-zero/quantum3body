@@ -39,6 +39,7 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     connect(_timer, SIGNAL(timeout()), SLOT(evolve()));
     connect(_ui->run, SIGNAL(toggled(bool)), SLOT(runSimulation(bool)));
     connect(_ui->pixelSize, SIGNAL(valueChanged(int)), delegate, SLOT(setPixelSize(int)));
+    connect(_ui->reset, SIGNAL(pressed()), SLOT(resetSimulation()));
 
     resetSimulation();
 }
@@ -54,7 +55,6 @@ void Quantum3BodySimulationWindow::resetSimulation()
     auto phi0 = [](const double& x, const double& y)->complex { return exp(-0.5*(x*x+y*y)); };
     _simulation->setInitial(phi0);
     plot();
-    runSimulation(false);
 }
 
 void Quantum3BodySimulationWindow::runSimulation(bool run)
