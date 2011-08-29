@@ -18,8 +18,8 @@
 
 #include <algorithm>
 
-const static size_t gridSizeX(128);
-const static size_t gridSizeY(128);
+const static size_t gridSizeX(64);
+const static size_t gridSizeY(64);
 
 Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     QMainWindow(p),
@@ -42,6 +42,8 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     connect(_ui->reset, SIGNAL(pressed()), SLOT(resetSimulation()));
 
     resetSimulation();
+
+    _timer->setInterval(1);
 }
 
 Quantum3BodySimulationWindow::~Quantum3BodySimulationWindow()
@@ -54,7 +56,9 @@ void Quantum3BodySimulationWindow::resetSimulation()
 {
     auto phi0 = [](const double& x, const double& y)->complex { return exp(-0.5*(x*x+y*y)); };
     _simulation->setInitial(phi0);
-    plot();
+
+    if (_currentIteration % _ui->updatePlotSteps->value() == 0)
+        plot();
 }
 
 void Quantum3BodySimulationWindow::runSimulation(bool run)
