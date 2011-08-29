@@ -28,10 +28,13 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     _currentIteration(0)
 {
     _ui->setupUi(this);
-   
-//    auto potential = [](const double& x, const double& y) { return 0.5*(x*x+y*y); }; // harmonic potential
-    auto potential = [](const double&, const double&) { return 0.0; }; // flat 0 potential
 
+//    auto potential = [](const double& x, const double& y) { return 0.5*(x*x+y*y); }; // harmonic potential
+//    auto potential = [](const double&, const double&) { return 0.0; }; // flat 0 potential
+    auto potential = [](const double& x, const double& y)->double {
+        const double e(0.2);
+        return -(1.0-e)/sqrt((x+e)*(x+e) + y*y) - e/sqrt((x-1.0+e)*(x-1.0+e) + y*y);
+    }; // restricted 3body potential
     _simulation = new Quantum3BodySimulation(gridSizeX, gridSizeY, potential);
 
     _spatialPlot = new QuantumPixelPlot(this);

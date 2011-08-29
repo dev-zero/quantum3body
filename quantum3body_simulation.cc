@@ -127,6 +127,7 @@ double Quantum3BodySimulation::binSizeY() const
 
 void Quantum3BodySimulation::evolveStep(const double& dt)
 {
+#ifdef SIMPLE_EVOLVE
     auto spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
         return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
     };
@@ -136,6 +137,17 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     auto momentumEvolveY = [&](const complex& f, const double&, const double& ky)->complex {
         return f*exp(-0.5 * ky*ky * dt * complex(0, 1));
     };
+#else
+    auto spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
+        return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
+    };
+    auto momentumEvolveX = [&](const complex& f, const double& kx, const double& y)->complex {
+        return f*exp(dt*(-0.5 * kx*kx + complex(0, 1)*y*kx));
+    };
+    auto momentumEvolveY = [&](const complex& f, const double& x, const double& ky)->complex {
+        return f*exp(dt*(-0.5 * ky*ky + complex(0, 1)*x*ky));
+    };
+#endif
 
     // f(x) *= exp(-0.5 * _V(x) * dt * i)
     for (size_t i(0); i < _sizeX; ++i)
