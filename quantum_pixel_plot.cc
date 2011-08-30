@@ -74,13 +74,13 @@ QVariant QuantumPixelPlot::data(const QModelIndex &index, int role) const
     size_t idx(index.row() + _ySize*index.column());
 
     if (role == Qt::DisplayRole)
-        return rainbowColorMap(abs(_modelData[idx]));
+        return rainbowColorMap(fabs(_modelData[idx]));
 
     if (role == Qt::ToolTipRole)
         return QString("Value: %1 + i%2\nAbsolute: %3")
             .arg(_modelData[idx].real())
             .arg(_modelData[idx].imag())
-            .arg(abs(_modelData[idx]));
+            .arg(fabs(_modelData[idx]));
 
     return QVariant();
 }
