@@ -68,10 +68,21 @@ int QuantumPixelPlot::columnCount(const QModelIndex & /* parent */) const
 
 QVariant QuantumPixelPlot::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || role != Qt::DisplayRole)
+    if (!index.isValid())
         return QVariant();
 
-    return rainbowColorMap(abs(_modelData[index.row() + _ySize*index.column()]));
+    size_t idx(index.row() + _ySize*index.column());
+
+    if (role == Qt::DisplayRole)
+        return rainbowColorMap(abs(_modelData[idx]));
+
+    if (role == Qt::ToolTipRole)
+        return QString("Value: %1 + i%2\nAbsolute: %3")
+            .arg(_modelData[idx].real())
+            .arg(_modelData[idx].imag())
+            .arg(abs(_modelData[idx]));
+
+    return QVariant();
 }
 
 QVariant QuantumPixelPlot::headerData(int /* section */,
