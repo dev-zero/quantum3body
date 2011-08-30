@@ -25,7 +25,7 @@ class Quantum3BodySimulation
 {
 public:
     typedef std::function<double (const double&, const double&)> PotentialFunction;
-    typedef std::function<complex (const complex&, const double&, const double&)> EvolutionFunction;
+    typedef std::function<void (complex&, const double&, const double&)> EvolutionFunction;
 
     Quantum3BodySimulation(size_t xSize, size_t ySize);
     ~Quantum3BodySimulation();
@@ -55,8 +55,13 @@ private:
     PotentialFunction _V;
     std::vector<double> _x, _y, _kx, _ky;
     std::vector<complex> _spatial, _momentum;
+#if 1
     fftw_plan _fftPlanForwardX, _fftPlanBackwardX;
     fftw_plan _fftPlanForwardY, _fftPlanBackwardY;
+#else
+    fftw_plan _fftPlanForward, _fftPlanBackward;
+#endif
+
     bool _useDefaultTimeEvolution;
  
 };

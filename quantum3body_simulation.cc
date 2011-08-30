@@ -33,6 +33,7 @@ Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY) :
     fftw_complex* spatial  = reinterpret_cast<fftw_complex*>(&_spatial.front());
     fftw_complex* momentum = reinterpret_cast<fftw_complex*>(&_momentum.front());
 
+#if 1
     // Trafo in X
     {
         int rank = 1; // 1-Dimensional
@@ -67,15 +68,23 @@ Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY) :
         _fftPlanForwardY  = fftw_plan_many_dft(rank, n, howmany, spatial, inembed, istride, idist, momentum, onembed, ostride, odist, FFTW_FORWARD, FFTW_MEASURE);
         _fftPlanBackwardY = fftw_plan_many_dft(rank, n, howmany, momentum, inembed, istride, idist, spatial, onembed, ostride, odist, FFTW_BACKWARD, FFTW_MEASURE);
     }
-    
+#else
+    _fftPlanForward  = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), spatial, momentum, FFTW_FORWARD, FFTW_ESTIMATE); // use FFTW_MEASURE once it gets real
+    _fftPlanBackward = fftw_plan_dft_2d(static_cast<int>(_sizeX), static_cast<int>(_sizeY), momentum, spatial, FFTW_BACKWARD, FFTW_ESTIMATE); // use FFTW_MEASURE once it gets real
+#endif
 }
 
 Quantum3BodySimulation::~Quantum3BodySimulation()
 {
+#if 1
     fftw_destroy_plan(_fftPlanForwardX);
     fftw_destroy_plan(_fftPlanBackwardX);
     fftw_destroy_plan(_fftPlanForwardY);
     fftw_destroy_plan(_fftPlanBackwardY);
+#else
+    fftw_destroy_plan(_fftPlanForward);
+    fftw_destroy_plan(_fftPlanBackward);
+#endif
 }
 
 void Quantum3BodySimulation::useDefaultEvolution()
@@ -142,31 +151,32 @@ double Quantum3BodySimulation::binSizeY() const
 
 void Quantum3BodySimulation::evolveStep(const double& dt)
 {
+#if 1
     // TODO: let the user set those functions using functions, like the potential
     EvolutionFunction spatialEvolve, momentumEvolveX, momentumEvolveY;
 
     if (_useDefaultTimeEvolution)
     {
-        spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
-            return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
+        spatialEvolve = [&](complex& f, const double& x, const double& y) {
+            f = f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
         };
-        momentumEvolveX = [&](const complex& f, const double& kx, const double&)->complex {
-            return f*exp(-0.5 * kx*kx * dt * complex(0, 1));
+        momentumEvolveX = [&](complex& f, const double& kx, const double& /* y */) {
+            f = f*exp(-0.5 * kx*kx * dt * complex(0, 1));
         };
-        momentumEvolveY = [&](const complex& f, const double&, const double& ky)->complex {
-            return f*exp(-0.5 * ky*ky * dt * complex(0, 1));
+        momentumEvolveY = [&](complex& f, const double& /* x */, const double& ky) {
+            f = f*exp(-0.5 * ky*ky * dt * complex(0, 1));
         };
     }
     else
     {
-        spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
-            return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
+        spatialEvolve = [&](complex& f, const double& x, const double& y) {
+            f = f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
         };
-        momentumEvolveX = [&](const complex& f, const double& kx, const double& y)->complex {
-            return f*exp(dt*(-0.5 * kx*kx + complex(0, 1)*y*kx));
+        momentumEvolveX = [&](complex& f, const double& kx, const double& y) {
+            f = f*exp(-complex(0,1)*(0.5*kx*kx - y*kx)*dt);
         };
-        momentumEvolveY = [&](const complex& f, const double& x, const double& ky)->complex {
-            return f*exp(dt*(-0.5 * ky*ky + complex(0, 1)*x*ky));
+        momentumEvolveY = [&](complex& f, const double& x, const double& ky) {
+            f = f*exp(-complex(0,1)*(0.5*ky*ky + x*ky)*dt);
         };
     }
 
@@ -175,7 +185,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            _spatial[j + (_sizeY*i)] = spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
+            spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
         }
     }
 
@@ -186,7 +196,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            _momentum[j + (_sizeY*i)] = momentumEvolveX(_momentum[j + (_sizeY*i)], _kx[i], _y[j]);
+            momentumEvolveX(_momentum[j + (_sizeY*i)], _kx[i], _y[j]);
         }
     }
 
@@ -200,7 +210,7 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            _momentum[j + (_sizeY*i)] = momentumEvolveY(_momentum[j + (_sizeY*i)], _x[i], _ky[j]);
+            momentumEvolveY(_momentum[j + (_sizeY*i)], _x[i], _ky[j]);
         }
     }
     fftw_execute(_fftPlanBackwardY);
@@ -210,7 +220,45 @@ void Quantum3BodySimulation::evolveStep(const double& dt)
     {
         for (size_t j(0); j < _sizeY; ++j)
         {
-            _spatial[j + (_sizeY*i)] = spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
+            spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
         }
     }
+#else
+    auto spatialEvolve = [&](complex& f, const double& x, const double& y) {
+        f = f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
+    };
+    auto momentumEvolve = [&](complex& f, const double& kx, const double& ky) {
+        f = f*exp(-0.5 * (kx*kx+ky*ky) * dt * complex(0, 1));
+    };
+
+    for (size_t i(0); i < _sizeX; ++i)
+    {
+        for (size_t j(0); j < _sizeY; ++j)
+        {
+            spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
+        }
+    }
+
+    fftw_execute(_fftPlanForward);
+    for (auto& f: _momentum) { f /= sqrt(static_cast<double>(_sizeX*_sizeY)); }
+
+    for (size_t i(0); i < _sizeX; ++i)
+    {
+        for (size_t j(0); j < _sizeY; ++j)
+        {
+            momentumEvolve(_momentum[j + (_sizeY*i)], _kx[i], _ky[j]);
+        }
+    }
+
+    fftw_execute(_fftPlanBackward);
+    for (auto& f: _spatial) { f /= sqrt(static_cast<double>(_sizeX*_sizeY)); }
+
+    for (size_t i(0); i < _sizeX; ++i)
+    {
+        for (size_t j(0); j < _sizeY; ++j)
+        {
+            spatialEvolve(_spatial[j + (_sizeY*i)], _x[i], _y[j]);
+        }
+    }
+#endif
 }
