@@ -43,21 +43,37 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     _ui(new Ui::Quantum3BodyWindow),
     _currentIteration(0),
     _lastResetTimestamp(0),
-    _simulation(nullptr)
+    _simulation(nullptr),
+    _image(nullptr)
 {
     _ui->setupUi(this);
+
+    _imageLabel = new QLabel;
+    _imageLabel->setBackgroundRole(QPalette::Base);
+    _imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    _imageLabel->setScaledContents(true);
+    
+    _ui->plotScrollArea->setBackgroundRole(QPalette::Dark);
+    _ui->plotScrollArea->setWidget(_imageLabel);
+
+    _ui->fitToWindowAction->setCheckable(true);
+    _ui->fitToWindowAction->setChecked(true);
+    updateViewActions();
+
+     connect(_ui->fitToWindowAction, SIGNAL(triggered()), this, SLOT(viewFitToWindow()));
+     connect(_ui->normalSizeAction, SIGNAL(triggered()), this, SLOT(viewNormalSize()));
 
     _defaultTimeEvolution = new DefaultTimeEvolution;
     _quantum3bodyTimeEvolution = new Quantum3BodyTimeEvolution;
 
-    _spatialPlot = new QuantumPixelPlot(this);
-    _ui->spatialPlot->setModel(_spatialPlot);
-    PixelDelegate* delegate(new PixelDelegate(this));
-    _ui->spatialPlot->setItemDelegate(delegate);
+//    _spatialPlot = new QuantumPixelPlot(this);
+//    _ui->spatialPlot->setModel(_spatialPlot);
+//    PixelDelegate* delegate(new PixelDelegate(this));
+//    _ui->spatialPlot->setItemDelegate(delegate);
 
     connect(_timer, SIGNAL(timeout()), SLOT(evolve()));
     connect(_ui->run, SIGNAL(toggled(bool)), SLOT(runSimulation(bool)));
-    connect(_ui->pixelSize, SIGNAL(valueChanged(int)), delegate, SLOT(setPixelSize(int)));
+//    connect(_ui->pixelSize, SIGNAL(valueChanged(int)), delegate, SLOT(setPixelSize(int)));
     connect(_ui->reset, SIGNAL(pressed()), SLOT(resetSimulation()));
     connect(_ui->browsePictureFolder, SIGNAL(pressed()), SLOT(browsePictureFolder()));
     connect(_ui->initialTimeEvolution, SIGNAL(currentIndexChanged(int)), SLOT(setTimeEvolution(int)));
@@ -76,13 +92,16 @@ Quantum3BodySimulationWindow::~Quantum3BodySimulationWindow()
     delete _simulation;
     delete _defaultTimeEvolution;
     delete _quantum3bodyTimeEvolution;
+    delete _image;
 }
 
 void Quantum3BodySimulationWindow::resetSimulation()
 {
-    _spatialPlot->setSpatialData(NULL, 0, 0);
+    statusBar()->showMessage("resetting the simulation, this may take a while...");
+//    _spatialPlot->setSpatialData(NULL, 0, 0);
 
     delete _simulation;
+    delete _image;
 
     size_t gridSizeX(0), gridSizeY(0);
 
@@ -112,7 +131,9 @@ void Quantum3BodySimulationWindow::resetSimulation()
         default:
             assert("!the selected grid size is not implemented");
     }
+
     _simulation = new TwoDimSPO(gridSizeX, gridSizeY);
+    _image = new QImage(gridSizeY, gridSizeX, QImage::Format_RGB32);
 
     auto phi0 = [&](const double& x, const double& y)->complex {
         double kx(_ui->initialPropagationX->value());
@@ -155,6 +176,7 @@ void Quantum3BodySimulationWindow::resetSimulation()
     _lastResetTimestamp = QDateTime::currentDateTime().toTime_t();
 
     plot();
+    statusBar()->showMessage("ready...");
 }
 
 void Quantum3BodySimulationWindow::browsePictureFolder()
@@ -190,9 +212,9 @@ void Quantum3BodySimulationWindow::plot()
 {
     const size_t gridSizeX(_simulation->sizeX()), gridSizeY(_simulation->sizeY());
 
-    _spatialPlot->setSpatialData(_simulation->phi(), gridSizeX, gridSizeY);
-    _ui->spatialPlot->resizeColumnsToContents();
-    _ui->spatialPlot->resizeRowsToContents();
+//    _spatialPlot->setSpatialData(_simulation->phi(), gridSizeX, gridSizeY);
+//    _ui->spatialPlot->resizeColumnsToContents();
+//    _ui->spatialPlot->resizeRowsToContents();
 
     double totalProbability(0.0);
     const double binSizeX(_simulation->binSizeX()), binSizeY(_simulation->binSizeY());
@@ -205,6 +227,17 @@ void Quantum3BodySimulationWindow::plot()
         }
     }
     _ui->totalProbability->setValue(totalProbability);
+
+    for(size_t i(0); i < gridSizeX; ++i)
+    {
+        for(size_t j(0); j < gridSizeY; ++j)
+        {
+            _image->setPixel(i, j, rainbowColorMap(fabs(_simulation->phi()[j + gridSizeY*i])));
+        }
+    }
+    _imageLabel->setPixmap(QPixmap::fromImage(*_image));
+    if (!_ui->fitToWindowAction->isChecked())
+        _imageLabel->adjustSize();
 
     if (_ui->savePictures->isChecked())
     {
@@ -219,17 +252,8 @@ void Quantum3BodySimulationWindow::plot()
                         .arg(_currentIteration, 4, 10, QLatin1Char('0'))
                         .arg(_ui->pictureFormat->currentText().toLower())));
 
-            QImage image(gridSizeY, gridSizeX, QImage::Format_RGB32);
-            for(size_t i(0); i < gridSizeX; ++i)
-            {
-                for(size_t j(0); j < gridSizeY; ++j)
-                {
-                    QModelIndex idx(_spatialPlot->index(j, i));
-                    image.setPixel(i, j, _spatialPlot->data(idx).value<QRgb>());
-                }
-            }
             qDebug() << "dumping picture to " << filepath;
-            image.save(filepath, _ui->pictureFormat->currentText().toAscii().constData());
+            _image->save(filepath, _ui->pictureFormat->currentText().toAscii().constData());
         }
     }
 }
@@ -250,3 +274,24 @@ void Quantum3BodySimulationWindow::setTimeEvolution(int selectedEvolutionAlgorit
             assert(!"Selected time evolution not defined.");
     }
 }
+
+void Quantum3BodySimulationWindow::viewNormalSize()
+{
+    _imageLabel->adjustSize();
+}
+
+void Quantum3BodySimulationWindow::viewFitToWindow()
+{
+    bool fitToWindow = _ui->fitToWindowAction->isChecked();
+    _ui->plotScrollArea->setWidgetResizable(fitToWindow);
+    if (!fitToWindow) {
+        viewNormalSize();
+    }
+    updateViewActions();
+}
+
+void Quantum3BodySimulationWindow::updateViewActions()
+{
+    _ui->normalSizeAction->setEnabled(!_ui->fitToWindowAction->isChecked());
+}
+

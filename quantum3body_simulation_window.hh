@@ -18,6 +18,8 @@ class TwoDimSPO;
 class DefaultTimeEvolution;
 class Quantum3BodyTimeEvolution;
 class QuantumPixelPlot;
+class QLabel;
+class QImage;
 
 namespace Ui
 {
@@ -39,6 +41,9 @@ public slots:
     void browsePictureFolder();
     void setTimeEvolution(int);
 
+    void viewNormalSize();
+    void viewFitToWindow();
+    void updateViewActions();
 private:
     TwoDimSPO* _simulation;
     DefaultTimeEvolution* _defaultTimeEvolution;
@@ -46,9 +51,11 @@ private:
 
     QTimer* _timer;
     Ui::Quantum3BodyWindow* _ui;
-    QuantumPixelPlot* _spatialPlot;
+//    QuantumPixelPlot* _spatialPlot;
     size_t _currentIteration;
     unsigned int _lastResetTimestamp;
+    QLabel* _imageLabel;
+    QImage* _image;
 };
 
 #endif // QUANTUM3BODY_SIMULATION_WINDOW_HH
