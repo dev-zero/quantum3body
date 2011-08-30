@@ -15,12 +15,16 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QTimer>
+#include <QtGui/QFileDialog>
+#include <QtGui/QImageWriter>
+#include <QtCore/QFile>
+#include <QtCore/QDateTime>
 
 #include <algorithm>
 #include <cassert>
 
-const static size_t gridSizeX(512);
-const static size_t gridSizeY(512);
+const static size_t gridSizeX(1024);
+const static size_t gridSizeY(1024);
 
 enum PotentialSelection
 {
@@ -38,7 +42,8 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     QMainWindow(p),
     _timer(new QTimer(this)),
     _ui(new Ui::Quantum3BodyWindow),
-    _currentIteration(0)
+    _currentIteration(0),
+    _lastResetTimestamp(0)
 {
     _ui->setupUi(this);
 
@@ -53,6 +58,12 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     connect(_ui->run, SIGNAL(toggled(bool)), SLOT(runSimulation(bool)));
     connect(_ui->pixelSize, SIGNAL(valueChanged(int)), delegate, SLOT(setPixelSize(int)));
     connect(_ui->reset, SIGNAL(pressed()), SLOT(resetSimulation()));
+    connect(_ui->browsePictureFolder, SIGNAL(pressed()), SLOT(browsePictureFolder()));
+
+    QByteArray format;
+    foreach (format, QImageWriter::supportedImageFormats())
+        _ui->pictureFormat->insertItem(0, format);
+    _ui->pictureFormat->setCurrentIndex(_ui->pictureFormat->findText("png")); // set the selected item to png or nothing
 
     resetSimulation();
 }
@@ -112,7 +123,16 @@ void Quantum3BodySimulationWindow::resetSimulation()
     _currentIteration = 0;
     _ui->currentIteration->setValue(_currentIteration);
 
+    _lastResetTimestamp = QDateTime::currentDateTime().toTime_t();
+
     plot();
+}
+
+void Quantum3BodySimulationWindow::browsePictureFolder()
+{
+    _ui->pictureFolder->setText(QFileDialog::getExistingDirectory(this,
+            tr("Open base directory for saving pictures"),
+            QString()));
 }
 
 void Quantum3BodySimulationWindow::runSimulation(bool run)
@@ -154,4 +174,31 @@ void Quantum3BodySimulationWindow::plot()
         }
     }
     _ui->totalProbability->setValue(totalProbability);
+
+    if (_ui->savePictures->isChecked())
+    {
+        QDir pictureFolder(_ui->pictureFolder->text());
+        if (pictureFolder.exists())
+        {
+            QString filepath(
+                    pictureFolder.filePath(
+                        QString("%1.%2_%3.%4")
+                        .arg(_ui->pictureBasename->text())
+                        .arg(_lastResetTimestamp)
+                        .arg(_currentIteration, 4, 10, QLatin1Char('0'))
+                        .arg(_ui->pictureFormat->currentText().toLower())));
+
+            QImage image(gridSizeY, gridSizeX, QImage::Format_RGB32);
+            for(size_t i(0); i < gridSizeX; ++i)
+            {
+                for(size_t j(0); j < gridSizeY; ++j)
+                {
+                    QModelIndex idx(_spatialPlot->index(j, i));
+                    image.setPixel(i, j, _spatialPlot->data(idx).value<QRgb>());
+                }
+            }
+            qDebug() << "dumping picture to " << filepath;
+            image.save(filepath, _ui->pictureFormat->currentText().toAscii().constData());
+        }
+    }
 }

@@ -33,6 +33,7 @@ public slots:
     void plot();
     void runSimulation(bool);
     void resetSimulation();
+    void browsePictureFolder();
 
 private:
     Quantum3BodySimulation* _simulation;
@@ -40,6 +41,7 @@ private:
     Ui::Quantum3BodyWindow* _ui;
     QuantumPixelPlot* _spatialPlot;
     size_t _currentIteration;
+    unsigned int _lastResetTimestamp;
 };
 
 #endif // QUANTUM3BODY_SIMULATION_WINDOW_HH
