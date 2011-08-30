@@ -103,7 +103,7 @@ int main(int, char**)
     size_t differences(0);
     for (size_t i(0); i < sizeX*sizeY; ++i)
     {
-        double abs_diff(abs(momentumSeparatedY[i] - momentum[i]));
+        double abs_diff(fabs(momentumSeparatedY[i] - momentum[i]));
         if (abs_diff > std::numeric_limits<double>::epsilon())
         {
             std::cout << "difference found: " << abs_diff << " @" << i << std::endl;
