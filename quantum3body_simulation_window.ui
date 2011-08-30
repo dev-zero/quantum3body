@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>858</width>
-    <height>600</height>
+    <height>688</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -215,7 +215,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QGroupBox" name="">
+       <widget class="QGroupBox" name="groupBox">
         <property name="title">
          <string>Parameters</string>
         </property>
@@ -264,7 +264,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QGroupBox" name="">
+       <widget class="QGroupBox" name="groupBox">
         <property name="title">
          <string>Controls</string>
         </property>
@@ -342,6 +342,38 @@
            </property>
            <property name="value">
             <number>1</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="groupBox_2">
+        <property name="title">
+         <string>Calculated values</string>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
+        </property>
+        <layout class="QFormLayout" name="formLayout_3">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_14">
+           <property name="text">
+            <string>Total Probability</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QDoubleSpinBox" name="totalProbability">
+           <property name="frame">
+            <bool>false</bool>
+           </property>
+           <property name="buttonSymbols">
+            <enum>QAbstractSpinBox::NoButtons</enum>
+           </property>
+           <property name="decimals">
+            <number>6</number>
            </property>
           </widget>
          </item>

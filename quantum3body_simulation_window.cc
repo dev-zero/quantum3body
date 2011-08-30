@@ -19,8 +19,8 @@
 #include <algorithm>
 #include <cassert>
 
-const static size_t gridSizeX(256);
-const static size_t gridSizeY(256);
+const static size_t gridSizeX(512);
+const static size_t gridSizeY(512);
 
 enum PotentialSelection
 {
@@ -80,10 +80,10 @@ void Quantum3BodySimulationWindow::resetSimulation()
     switch (_ui->initialPotential->currentIndex())
     {
         case HARMONIC_POTENTIAL:
-            initialPotential = [](const double& x, const double& y) { return 0.5*(x*x+y*y); }; 
+            initialPotential = [](const double& x, const double& y)->double { return 0.5*(x*x+y*y); }; 
             break;
         case ZERO_POTENTIAL:
-            initialPotential = [](const double&, const double&) { return 0.0; };
+            initialPotential = [](const double&, const double&)->double { return 0.0; };
             break;
         case QUANTUM3BODY_POTENTIAL:
             initialPotential = [](const double& x, const double& y)->double {
@@ -142,5 +142,16 @@ void Quantum3BodySimulationWindow::plot()
     _spatialPlot->setSpatialData(_simulation->f_spatial(), gridSizeX, gridSizeY);
     _ui->spatialPlot->resizeColumnsToContents();
     _ui->spatialPlot->resizeRowsToContents();
-}
 
+    double totalProbability(0.0);
+    const double binSizeX(_simulation->binSizeX()), binSizeY(_simulation->binSizeY());
+    const std::vector<complex>& f(_simulation->f_spatial());
+    for (size_t i(0); i < gridSizeX; ++i)
+    {
+        for (size_t j(0); j < gridSizeY; ++j)
+        {
+            totalProbability += binSizeX*binSizeY*fabs(f[j + gridSizeY*i]);
+        }
+    }
+    _ui->totalProbability->setValue(totalProbability);
+}
