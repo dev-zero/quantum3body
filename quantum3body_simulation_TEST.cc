@@ -17,7 +17,8 @@ int main(int, char**)
     auto potential = [](const double& x, const double& y) { return 0.5*(x*x+y*y); };
     auto phi0 = [](const double& x, const double& y)->complex { return exp(-0.5*(x*x+y*y)); };
 
-    Quantum3BodySimulation sim(64, 64, potential);
+    Quantum3BodySimulation sim(64, 64);
+    sim.setPotential(potential);
     sim.setInitial(phi0);
 
     for (size_t i(0); i < 1000; ++i)

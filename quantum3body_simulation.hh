@@ -25,12 +25,18 @@ class Quantum3BodySimulation
 {
 public:
     typedef std::function<double (const double&, const double&)> PotentialFunction;
+    typedef std::function<complex (const complex&, const double&, const double&)> EvolutionFunction;
 
-    Quantum3BodySimulation(size_t xSize, size_t ySize, PotentialFunction V);
+    Quantum3BodySimulation(size_t xSize, size_t ySize);
     ~Quantum3BodySimulation();
 
     void setInitial(std::function<complex (const double&, const double&)> initialPhi);
-    
+    void setPotential(PotentialFunction V);
+    void setTimeEvolution(EvolutionFunction spatial, EvolutionFunction kx_y_space, EvolutionFunction x_ky_space);
+
+    void useDefaultEvolution();
+    void useQuantum3BodyEvolution();
+
     double binSizeX() const;
     double binSizeY() const;
 
@@ -46,12 +52,12 @@ public:
 
 private:
     size_t _sizeX, _sizeY;
-
     PotentialFunction _V;
     std::vector<double> _x, _y, _kx, _ky;
     std::vector<complex> _spatial, _momentum;
     fftw_plan _fftPlanForwardX, _fftPlanBackwardX;
     fftw_plan _fftPlanForwardY, _fftPlanBackwardY;
+    bool _useDefaultTimeEvolution;
  
 };
 

@@ -16,16 +16,16 @@
 #include <iomanip>
 #include <fstream>
 
-Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY, PotentialFunction V) :
+Quantum3BodySimulation::Quantum3BodySimulation(size_t sizeX, size_t sizeY) :
     _sizeX(sizeX),
     _sizeY(sizeY),
-    _V(V),
     _x(sizeX),
     _y(sizeY),
     _kx(sizeX),
     _ky(sizeY),
     _spatial(sizeX*sizeY),
-    _momentum(sizeX*sizeY)
+    _momentum(sizeX*sizeY),
+    _useDefaultTimeEvolution(true)
 {
     assert(!(sizeX % 2) && "sizeX must be even");
     assert(!(sizeY % 2) && "sizeY must be even");
@@ -78,6 +78,21 @@ Quantum3BodySimulation::~Quantum3BodySimulation()
     fftw_destroy_plan(_fftPlanBackwardY);
 }
 
+void Quantum3BodySimulation::useDefaultEvolution()
+{
+    _useDefaultTimeEvolution = true;
+}
+
+void Quantum3BodySimulation::useQuantum3BodyEvolution()
+{
+    _useDefaultTimeEvolution = false;
+}
+
+void Quantum3BodySimulation::setPotential(PotentialFunction V)
+{
+    _V = V;
+}
+
 void Quantum3BodySimulation::setInitial(std::function<complex (const double& x, const double& y)> initialPhi)
 {
     const double delta_kx(2.0*M_PI*binSizeX());
@@ -127,27 +142,33 @@ double Quantum3BodySimulation::binSizeY() const
 
 void Quantum3BodySimulation::evolveStep(const double& dt)
 {
-#ifdef SIMPLE_EVOLVE
-    auto spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
-        return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
-    };
-    auto momentumEvolveX = [&](const complex& f, const double& kx, const double&)->complex {
-        return f*exp(-0.5 * kx*kx * dt * complex(0, 1));
-    };
-    auto momentumEvolveY = [&](const complex& f, const double&, const double& ky)->complex {
-        return f*exp(-0.5 * ky*ky * dt * complex(0, 1));
-    };
-#else
-    auto spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
-        return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
-    };
-    auto momentumEvolveX = [&](const complex& f, const double& kx, const double& y)->complex {
-        return f*exp(dt*(-0.5 * kx*kx + complex(0, 1)*y*kx));
-    };
-    auto momentumEvolveY = [&](const complex& f, const double& x, const double& ky)->complex {
-        return f*exp(dt*(-0.5 * ky*ky + complex(0, 1)*x*ky));
-    };
-#endif
+    // TODO: let the user set those functions using functions, like the potential
+    EvolutionFunction spatialEvolve, momentumEvolveX, momentumEvolveY;
+
+    if (_useDefaultTimeEvolution)
+    {
+        spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
+            return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
+        };
+        momentumEvolveX = [&](const complex& f, const double& kx, const double&)->complex {
+            return f*exp(-0.5 * kx*kx * dt * complex(0, 1));
+        };
+        momentumEvolveY = [&](const complex& f, const double&, const double& ky)->complex {
+            return f*exp(-0.5 * ky*ky * dt * complex(0, 1));
+        };
+    }
+    else
+    {
+        spatialEvolve = [&](const complex& f, const double& x, const double& y)->complex {
+            return f*exp(-0.5 * _V(x, y) * dt * complex(0, 1));
+        };
+        momentumEvolveX = [&](const complex& f, const double& kx, const double& y)->complex {
+            return f*exp(dt*(-0.5 * kx*kx + complex(0, 1)*y*kx));
+        };
+        momentumEvolveY = [&](const complex& f, const double& x, const double& ky)->complex {
+            return f*exp(dt*(-0.5 * ky*ky + complex(0, 1)*x*ky));
+        };
+    }
 
     // f(x) *= exp(-0.5 * _V(x) * dt * i)
     for (size_t i(0); i < _sizeX; ++i)

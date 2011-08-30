@@ -17,9 +17,22 @@
 #include <QtCore/QTimer>
 
 #include <algorithm>
+#include <cassert>
 
-const static size_t gridSizeX(128);
-const static size_t gridSizeY(128);
+const static size_t gridSizeX(256);
+const static size_t gridSizeY(256);
+
+enum PotentialSelection
+{
+    HARMONIC_POTENTIAL     = 0,
+    ZERO_POTENTIAL         = 1,
+    QUANTUM3BODY_POTENTIAL = 2
+};
+enum TimeEvolutionSelection
+{
+    DEFAULT_EVOLUTION      = 0,
+    QUANTUM3BODY_EVOLUTION = 1
+};
 
 Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     QMainWindow(p),
@@ -29,13 +42,7 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
 {
     _ui->setupUi(this);
 
-//    auto potential = [](const double& x, const double& y) { return 0.5*(x*x+y*y); }; // harmonic potential
-//    auto potential = [](const double&, const double&) { return 0.0; }; // flat 0 potential
-    auto potential = [](const double& x, const double& y)->double {
-        const double e(0.2);
-        return -(1.0-e)/sqrt((x+e)*(x+e) + y*y) - e/sqrt((x-1.0+e)*(x-1.0+e) + y*y);
-    }; // restricted 3body potential
-    _simulation = new Quantum3BodySimulation(gridSizeX, gridSizeY, potential);
+    _simulation = new Quantum3BodySimulation(gridSizeX, gridSizeY);
 
     _spatialPlot = new QuantumPixelPlot(this);
     _ui->spatialPlot->setModel(_spatialPlot);
@@ -58,8 +65,50 @@ Quantum3BodySimulationWindow::~Quantum3BodySimulationWindow()
 
 void Quantum3BodySimulationWindow::resetSimulation()
 {
-    auto phi0 = [](const double& x, const double& y)->complex { return exp(-0.5*(x*x+y*y)); };
+//    auto phi0 = [](const double& x, const double& y)->complex { return exp(-0.5*(x*x+y*y)); };
+
+    auto phi0 = [&](const double& x, const double& y)->complex {
+        double kx(_ui->initialPropagationX->value());
+        double ky(_ui->initialPropagationY->value());
+        double dx(_ui->initialPositionX->value());
+        double dy(_ui->initialPositionY->value());
+        return exp(-0.5*((x-dx)*(x-dx)+(y-dy)*(y-dy)) - complex(0,1)*ky*y - complex(0,1)*kx*x);
+    };
+
+    Quantum3BodySimulation::PotentialFunction initialPotential;
+
+    switch (_ui->initialPotential->currentIndex())
+    {
+        case HARMONIC_POTENTIAL:
+            initialPotential = [](const double& x, const double& y) { return 0.5*(x*x+y*y); }; 
+            break;
+        case ZERO_POTENTIAL:
+            initialPotential = [](const double&, const double&) { return 0.0; };
+            break;
+        case QUANTUM3BODY_POTENTIAL:
+            initialPotential = [](const double& x, const double& y)->double {
+                const double e(0.2);
+                return -(1.0-e)/sqrt((x+e)*(x+e) + y*y) - e/sqrt((x-1.0+e)*(x-1.0+e) + y*y);
+            }; 
+            break;
+        default:
+            assert(!"Selected potential not defined.");
+    }
+
+    switch (_ui->initialTimeEvolution->currentIndex())
+    {
+        case DEFAULT_EVOLUTION:
+            _simulation->useDefaultEvolution();
+            break;
+        case QUANTUM3BODY_EVOLUTION:
+            _simulation->useQuantum3BodyEvolution();
+            break;
+        default:
+            assert(!"Selected time evolution not defined.");
+    }
     _simulation->setInitial(phi0);
+    _simulation->setPotential(initialPotential);
+
     _currentIteration = 0;
     _ui->currentIteration->setValue(_currentIteration);
 
