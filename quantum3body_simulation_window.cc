@@ -9,7 +9,8 @@
  */
 
 #include "quantum3body_simulation_window.hh"
-#include "quantum3body_simulation.hh"
+#include "two_dim_spo.hh"
+#include "time_evolutions.hh"
 #include "quantum_pixel_plot.hh"
 
 #include "ui_quantum3body_simulation_window.h"
@@ -24,15 +25,12 @@
 #include <algorithm>
 #include <cassert>
 
-const static size_t gridSizeX(1024);
-const static size_t gridSizeY(1024);
-
 enum PotentialSelection
 {
     HARMONIC_POTENTIAL     = 0,
-    ZERO_POTENTIAL         = 1,
-    QUANTUM3BODY_POTENTIAL = 2
+    ZERO_POTENTIAL         = 1
 };
+
 enum TimeEvolutionSelection
 {
     DEFAULT_EVOLUTION      = 0,
@@ -44,11 +42,13 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     _timer(new QTimer(this)),
     _ui(new Ui::Quantum3BodyWindow),
     _currentIteration(0),
-    _lastResetTimestamp(0)
+    _lastResetTimestamp(0),
+    _simulation(nullptr)
 {
     _ui->setupUi(this);
 
-    _simulation = new Quantum3BodySimulation(gridSizeX, gridSizeY);
+    _defaultTimeEvolution = new DefaultTimeEvolution;
+    _quantum3bodyTimeEvolution = new Quantum3BodyTimeEvolution;
 
     _spatialPlot = new QuantumPixelPlot(this);
     _ui->spatialPlot->setModel(_spatialPlot);
@@ -60,6 +60,7 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     connect(_ui->pixelSize, SIGNAL(valueChanged(int)), delegate, SLOT(setPixelSize(int)));
     connect(_ui->reset, SIGNAL(pressed()), SLOT(resetSimulation()));
     connect(_ui->browsePictureFolder, SIGNAL(pressed()), SLOT(browsePictureFolder()));
+    connect(_ui->initialTimeEvolution, SIGNAL(currentIndexChanged(int)), SLOT(setTimeEvolution(int)));
 
     QByteArray format;
     foreach (format, QImageWriter::supportedImageFormats())
@@ -73,11 +74,45 @@ Quantum3BodySimulationWindow::~Quantum3BodySimulationWindow()
 {
     _timer->stop();
     delete _simulation;
+    delete _defaultTimeEvolution;
+    delete _quantum3bodyTimeEvolution;
 }
 
 void Quantum3BodySimulationWindow::resetSimulation()
 {
-//    auto phi0 = [](const double& x, const double& y)->complex { return exp(-0.5*(x*x+y*y)); };
+    _spatialPlot->setSpatialData(NULL, 0, 0);
+
+    delete _simulation;
+
+    size_t gridSizeX(0), gridSizeY(0);
+
+    switch (_ui->resolution->currentIndex())
+    {
+        case 0:
+            gridSizeX = gridSizeY = 64;
+            break;
+        case 1:
+            gridSizeX = gridSizeY = 128;
+            break;
+        case 2:
+            gridSizeX = gridSizeY = 256;
+            break;
+        case 3:
+            gridSizeX = gridSizeY = 512;
+            break;
+        case 4:
+            gridSizeX = gridSizeY = 1024;
+            break;
+        case 5:
+            gridSizeX = gridSizeY = 2048;
+            break;
+        case 6:
+            gridSizeX = gridSizeY = 4096;
+            break;
+        default:
+            assert("!the selected grid size is not implemented");
+    }
+    _simulation = new TwoDimSPO(gridSizeX, gridSizeY);
 
     auto phi0 = [&](const double& x, const double& y)->complex {
         double kx(_ui->initialPropagationX->value());
@@ -87,39 +122,32 @@ void Quantum3BodySimulationWindow::resetSimulation()
         return exp(-0.5*((x-dx)*(x-dx)+(y-dy)*(y-dy)) - complex(0,1)*ky*y - complex(0,1)*kx*x);
     };
 
-    Quantum3BodySimulation::PotentialFunction initialPotential;
-
     switch (_ui->initialPotential->currentIndex())
     {
         case HARMONIC_POTENTIAL:
-            initialPotential = [](const double& x, const double& y)->double { return 0.5*(x*x+y*y); }; 
+            _defaultTimeEvolution->useHarmonicPotential = true;
             break;
         case ZERO_POTENTIAL:
-            initialPotential = [](const double&, const double&)->double { return 0.0; };
-            break;
-        case QUANTUM3BODY_POTENTIAL:
-            initialPotential = [](const double& x, const double& y)->double {
-                const double e(0.2);
-                return -(1.0-e)/sqrt((x+e)*(x+e) + y*y) - e/sqrt((x-1.0+e)*(x-1.0+e) + y*y);
-            }; 
+            _defaultTimeEvolution->useHarmonicPotential = false;
             break;
         default:
             assert(!"Selected potential not defined.");
     }
 
+    _quantum3bodyTimeEvolution->e = _ui->initialEpsilon->value();
+
     switch (_ui->initialTimeEvolution->currentIndex())
     {
         case DEFAULT_EVOLUTION:
-            _simulation->useDefaultEvolution();
+            _simulation->setTimeEvolution(_defaultTimeEvolution);
             break;
         case QUANTUM3BODY_EVOLUTION:
-            _simulation->useQuantum3BodyEvolution();
+            _simulation->setTimeEvolution(_quantum3bodyTimeEvolution);
             break;
         default:
             assert(!"Selected time evolution not defined.");
     }
-    _simulation->setInitial(phi0);
-    _simulation->setPotential(initialPotential);
+    _simulation->initialize(phi0);
 
     _currentIteration = 0;
     _ui->currentIteration->setValue(_currentIteration);
@@ -160,13 +188,15 @@ void Quantum3BodySimulationWindow::evolve()
 
 void Quantum3BodySimulationWindow::plot()
 {
-    _spatialPlot->setSpatialData(_simulation->f_spatial(), gridSizeX, gridSizeY);
+    const size_t gridSizeX(_simulation->sizeX()), gridSizeY(_simulation->sizeY());
+
+    _spatialPlot->setSpatialData(_simulation->phi(), gridSizeX, gridSizeY);
     _ui->spatialPlot->resizeColumnsToContents();
     _ui->spatialPlot->resizeRowsToContents();
 
     double totalProbability(0.0);
     const double binSizeX(_simulation->binSizeX()), binSizeY(_simulation->binSizeY());
-    const std::vector<complex>& f(_simulation->f_spatial());
+    const complex* f(_simulation->phi());
     for (size_t i(0); i < gridSizeX; ++i)
     {
         for (size_t j(0); j < gridSizeY; ++j)
@@ -201,5 +231,22 @@ void Quantum3BodySimulationWindow::plot()
             qDebug() << "dumping picture to " << filepath;
             image.save(filepath, _ui->pictureFormat->currentText().toAscii().constData());
         }
+    }
+}
+
+void Quantum3BodySimulationWindow::setTimeEvolution(int selectedEvolutionAlgorithm)
+{
+    switch (selectedEvolutionAlgorithm)
+    {
+        case DEFAULT_EVOLUTION:
+            _ui->initialPotential->setEnabled(true);
+            _ui->initialEpsilon->setEnabled(false);
+            break;
+        case QUANTUM3BODY_EVOLUTION:
+            _ui->initialPotential->setEnabled(false);
+            _ui->initialEpsilon->setEnabled(true);
+            break;
+        default:
+            assert(!"Selected time evolution not defined.");
     }
 }

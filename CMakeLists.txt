@@ -4,8 +4,8 @@ project(quantum3body)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wold-style-cast -Wredundant-decls -Wstrict-null-sentinel -Wmissing-noreturn -Woverloaded-virtual -Winit-self -Wunused -Wunused-function -Wshadow -Wwrite-strings -Wfloat-equal -Wconversion -pedantic -Wno-long-long")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -O2")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fopenmp")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -pg")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMPLE_PIXEL") # draw simple pixels
 
 find_package(Qt4 REQUIRED)
@@ -31,14 +31,14 @@ QT4_WRAP_CPP(quantum3body_simulation_MOC_SRCS
 
 add_executable(quantum3body-simulation
     ${quantum3body_simulation_MOC_SRCS} ${quantum3body_simulation_UIS_H}
-    quantum3body_simulation.cc
+    two_dim_spo.cc
     quantum3body_simulation_window.cc
     quantum_pixel_plot.cc
     main.cc
     )
 target_link_libraries(quantum3body-simulation
     ${QT_LIBRARIES}
-    -lfftw3
+    -lfftw3_omp -lfftw3 -lm
     )
 
 add_executable(quantum3body_simulation_TEST

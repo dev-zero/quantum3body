@@ -49,7 +49,7 @@ QuantumPixelPlot::QuantumPixelPlot(QObject *parent)
 {
 }
 
-void QuantumPixelPlot::setSpatialData(const std::vector<std::complex<double>>& data, size_t xSize, size_t ySize)
+void QuantumPixelPlot::setSpatialData(const std::complex<double>* data, size_t xSize, size_t ySize)
 {
     _modelData = data;
     _xSize = xSize;

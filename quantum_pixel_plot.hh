@@ -25,7 +25,7 @@ class QuantumPixelPlot :
 
 public:
     QuantumPixelPlot(QObject* p = nullptr);
-    void setSpatialData(const std::vector<std::complex<double>>& data, size_t xSize, size_t ySize);
+    void setSpatialData(const std::complex<double>* data, size_t xSize, size_t ySize);
 
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
@@ -34,7 +34,7 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
 private:
-    std::vector<std::complex<double>> _modelData;
+    const std::complex<double>* _modelData;
     size_t _xSize, _ySize;
 };
 

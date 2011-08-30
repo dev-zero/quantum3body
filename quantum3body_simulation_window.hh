@@ -14,7 +14,9 @@
 #include <QtGui/QMainWindow>
 
 class QTimer;
-class Quantum3BodySimulation;
+class TwoDimSPO;
+class DefaultTimeEvolution;
+class Quantum3BodyTimeEvolution;
 class QuantumPixelPlot;
 
 namespace Ui
@@ -35,9 +37,13 @@ public slots:
     void runSimulation(bool);
     void resetSimulation();
     void browsePictureFolder();
+    void setTimeEvolution(int);
 
 private:
-    Quantum3BodySimulation* _simulation;
+    TwoDimSPO* _simulation;
+    DefaultTimeEvolution* _defaultTimeEvolution;
+    Quantum3BodyTimeEvolution* _quantum3bodyTimeEvolution;
+
     QTimer* _timer;
     Ui::Quantum3BodyWindow* _ui;
     QuantumPixelPlot* _spatialPlot;
