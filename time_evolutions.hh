@@ -12,6 +12,8 @@
 
 #include "two_dim_spo.hh"
 
+#include <limits>
+
 /**
  * This is the "default" time evolution which is being used for
  * to simulated a particle in a harmonic or flat potential.
@@ -97,7 +99,13 @@ struct Quantum3BodyTimeEvolution :
      */
     inline double V(const double& x, const double& y) const
     {
-        return -(1.0-e)/sqrt((x+e)*(x+e) + y*y) - e/sqrt((x-1.0+e)*(x-1.0+e) + y*y);
+        double a(sqrt((x+e)*(x+e) + y*y));
+        double b(sqrt((x-1.0+e)*(x-1.0+e) + y*y));
+        if (fabs(a) < std::numeric_limits<double>::epsilon())
+            a = std::numeric_limits<double>::epsilon();
+        if (fabs(b) < std::numeric_limits<double>::epsilon())
+            b = std::numeric_limits<double>::epsilon();
+        return -(1.0-e)/a - e/b;
     }
 
     /**
