@@ -212,7 +212,7 @@ void Quantum3BodySimulationWindow::plot()
     {
         for (size_t j(0); j < gridSizeY; ++j)
         {
-            totalProbability += binSizeX*binSizeY*fabs(f[j + gridSizeY*i]);
+            totalProbability += binSizeX*binSizeY*fabs(f[j + gridSizeY*i])*fabs(f[j + gridSizeY*i]);
         }
     }
     _ui->totalProbability->setValue(totalProbability);
