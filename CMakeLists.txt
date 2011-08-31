@@ -4,14 +4,12 @@ project(quantum3body)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wold-style-cast -Wredundant-decls -Wstrict-null-sentinel -Wmissing-noreturn -Woverloaded-virtual -Winit-self -Wunused -Wunused-function -Wshadow -Wwrite-strings -Wfloat-equal -Wconversion -pedantic -Wno-long-long")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fopenmp -mtune=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mtune=native")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -pg")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMPLE_PIXEL") # draw simple pixels
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENMP -fopenmp") # enable OpenMP
 
 find_package(Qt4 REQUIRED)
 set(QT_USE_QTGUI TRUE)
-set(QT_USE_QTOPENGL TRUE)
-set(QT_USE_QTWEBKIT TRUE)
 include(${QT_USE_FILE})
 
 # mark all 3rdparty headers as system headers to disable warnings generated
@@ -35,6 +33,9 @@ add_executable(quantum3body-simulation
     color_maps.cc
     main.cc
     )
+
+# remove -lfftw3_omp if you don't have OpenMP or replace
+# it by -lfftw3_threads if you use FFTW < 3.3 and have FFTW compiled with OpenMP
 target_link_libraries(quantum3body-simulation
     ${QT_LIBRARIES}
     -lfftw3_omp -lfftw3 -lm

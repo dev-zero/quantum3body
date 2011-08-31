@@ -63,13 +63,15 @@
 
 #include "quantum3body_simulation_window.hh"
 
+#include <cassert>
 #include <complex>
 // make sure <complex> is included before fftw3.h
 // to have FFTW use the datatype defined by gcc's complex
 // rather than it's own
 #include <fftw3.h>
+#ifdef HAVE_OPENMP
 #include <omp.h>
-#include <cassert>
+#endif
 
 #include <QtGui/QApplication>
 
@@ -77,9 +79,11 @@ int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
 
+#ifdef HAVE_OPENMP
     int ret(fftw_init_threads());
     assert(ret && "initializing fftw threads failed");
     fftw_plan_with_nthreads(omp_get_num_threads());
+#endif
 
     Quantum3BodySimulationWindow window;
     window.show();

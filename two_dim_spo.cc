@@ -10,8 +10,10 @@
 #include "two_dim_spo.hh"
 
 #include <cassert>
+
+#ifdef HAVE_OPENMP
 #include <omp.h>
-#include <iostream>
+#endif
 
 TwoDimSPO::TwoDimSPO(size_t sizeX, size_t sizeY) :
     _sizeX(sizeX),
