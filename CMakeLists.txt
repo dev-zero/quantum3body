@@ -26,14 +26,13 @@ QT4_WRAP_UI(quantum3body_simulation_UIS_H
 
 QT4_WRAP_CPP(quantum3body_simulation_MOC_SRCS
     quantum3body_simulation_window.hh
-    quantum_pixel_plot.hh
     )
 
 add_executable(quantum3body-simulation
     ${quantum3body_simulation_MOC_SRCS} ${quantum3body_simulation_UIS_H}
     two_dim_spo.cc
     quantum3body_simulation_window.cc
-    quantum_pixel_plot.cc
+    color_maps.cc
     main.cc
     )
 target_link_libraries(quantum3body-simulation

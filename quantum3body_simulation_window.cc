@@ -11,7 +11,7 @@
 #include "quantum3body_simulation_window.hh"
 #include "two_dim_spo.hh"
 #include "time_evolutions.hh"
-#include "quantum_pixel_plot.hh"
+#include "color_maps.hh"
 
 #include "ui_quantum3body_simulation_window.h"
 
