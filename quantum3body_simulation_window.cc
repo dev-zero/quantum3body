@@ -25,16 +25,36 @@
 #include <algorithm>
 #include <cassert>
 
+/**
+ * This should match the entries in the initialPotential QComboBox
+ */
 enum PotentialSelection
 {
     HARMONIC_POTENTIAL     = 0,
     ZERO_POTENTIAL         = 1
 };
 
+/**
+ * This should match the entries in the initialTimeEvolution QComboBox
+ */
 enum TimeEvolutionSelection
 {
     DEFAULT_EVOLUTION      = 0,
     QUANTUM3BODY_EVOLUTION = 1
+};
+
+/**
+ * This should match the entries in the resolution QComboBox
+ */
+enum Resolution
+{
+    RESOLUTION_64x64     = 0,
+    RESOLUTION_128x128   = 1,
+    RESOLUTION_256x256   = 2,
+    RESOLUTION_512x512   = 3,
+    RESOLUTION_1024x1024 = 4,
+    RESOLUTION_2048x2048 = 5,
+    RESOLUTION_4096x4096 = 6
 };
 
 Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
@@ -93,48 +113,44 @@ void Quantum3BodySimulationWindow::resetSimulation()
 {
     statusBar()->showMessage("resetting the simulation, this may take a while...");
 
-    delete _simulation;
-    delete _image;
-
     size_t gridSizeX(0), gridSizeY(0);
 
     switch (_ui->resolution->currentIndex())
     {
-        case 0:
+        case RESOLUTION_64x64:
             gridSizeX = gridSizeY = 64;
             break;
-        case 1:
+        case RESOLUTION_128x128:
             gridSizeX = gridSizeY = 128;
             break;
-        case 2:
+        case RESOLUTION_256x256:
             gridSizeX = gridSizeY = 256;
             break;
-        case 3:
+        case RESOLUTION_512x512:
             gridSizeX = gridSizeY = 512;
             break;
-        case 4:
+        case RESOLUTION_1024x1024:
             gridSizeX = gridSizeY = 1024;
             break;
-        case 5:
+        case RESOLUTION_2048x2048:
             gridSizeX = gridSizeY = 2048;
             break;
-        case 6:
+        case RESOLUTION_4096x4096:
             gridSizeX = gridSizeY = 4096;
             break;
         default:
             assert("!the selected grid size is not implemented");
     }
 
-    _simulation = new TwoDimSPO(gridSizeX, gridSizeY);
-    _image = new QImage(static_cast<int>(gridSizeY), static_cast<int>(gridSizeX), QImage::Format_RGB32);
+    // only reinitialize the simulation if the resolution changed
+    if (_simulation == nullptr || gridSizeX != _simulation->sizeX() || gridSizeY != _simulation->sizeY())
+    {
+        delete _simulation;
+        delete _image;
 
-    auto phi0 = [&](const double& x, const double& y)->complex {
-        double kx(_ui->initialPropagationX->value());
-        double ky(_ui->initialPropagationY->value());
-        double dx(_ui->initialPositionX->value());
-        double dy(_ui->initialPositionY->value());
-        return exp(-0.5*((x-dx)*(x-dx)+(y-dy)*(y-dy)) - complex(0,1)*ky*y - complex(0,1)*kx*x);
-    };
+        _simulation = new TwoDimSPO(gridSizeX, gridSizeY);
+        _image = new QImage(static_cast<int>(gridSizeY), static_cast<int>(gridSizeX), QImage::Format_RGB32);
+    }
 
     switch (_ui->initialPotential->currentIndex())
     {
@@ -161,6 +177,15 @@ void Quantum3BodySimulationWindow::resetSimulation()
         default:
             assert(!"Selected time evolution not defined.");
     }
+
+    auto phi0 = [&](const double& x, const double& y)->complex {
+        double kx(_ui->initialPropagationX->value());
+        double ky(_ui->initialPropagationY->value());
+        double dx(_ui->initialPositionX->value());
+        double dy(_ui->initialPositionY->value());
+        return exp(-0.5*((x-dx)*(x-dx)+(y-dy)*(y-dy)) - complex(0,1)*ky*y - complex(0,1)*kx*x);
+    };
+
     _simulation->initialize(phi0);
 
     _currentIteration = 0;
