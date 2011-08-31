@@ -4,7 +4,7 @@ project(quantum3body)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wold-style-cast -Wredundant-decls -Wstrict-null-sentinel -Wmissing-noreturn -Woverloaded-virtual -Winit-self -Wunused -Wunused-function -Wshadow -Wwrite-strings -Wfloat-equal -Wconversion -pedantic -Wno-long-long")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fopenmp -mtune=native")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -pg")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMPLE_PIXEL") # draw simple pixels
 
