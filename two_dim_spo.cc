@@ -24,13 +24,16 @@ TwoDimSPO::TwoDimSPO(size_t sizeX, size_t sizeY) :
     assert(!(sizeX % 2) && "sizeX must be even");
     assert(!(sizeY % 2) && "sizeY must be even");
 
+    // allocate the arrays using fftw_malloc to ensure the array are on memory boundaries suited for using SIMD
     _phi = static_cast<complex*>(fftw_malloc(sizeof(fftw_complex) * sizeX * sizeY));
     _Phi = static_cast<complex*>(fftw_malloc(sizeof(fftw_complex) * sizeX * sizeY));
 
     fftw_complex* phi = reinterpret_cast<fftw_complex*>(_phi);
     fftw_complex* Phi = reinterpret_cast<fftw_complex*>(_Phi);
 
-    // Trafo in X
+    int fftw_method(FFTW_MEASURE); // eventually use FFTW_PATIENCE to get faster
+
+    // Initialize the transformation in X
     {
         int rank = 1; // 1-Dimensional
         int n[] = { static_cast<int>(sizeX)}; // number of elements in each rank, 1 rank => one element in this array, value = sizeX
@@ -44,10 +47,10 @@ TwoDimSPO::TwoDimSPO(size_t sizeX, size_t sizeY) :
         int ostride = istride;
         int* onembed = NULL;
 
-        _fftPlanForwardX  = fftw_plan_many_dft(rank, n, howmany, phi, inembed, istride, idist, Phi, onembed, ostride, odist, FFTW_FORWARD, FFTW_MEASURE);
-        _fftPlanBackwardX = fftw_plan_many_dft(rank, n, howmany, Phi, inembed, istride, idist, phi, onembed, ostride, odist, FFTW_BACKWARD, FFTW_MEASURE);
+        _fftPlanForwardX  = fftw_plan_many_dft(rank, n, howmany, phi, inembed, istride, idist, Phi, onembed, ostride, odist, FFTW_FORWARD, fftw_method);
+        _fftPlanBackwardX = fftw_plan_many_dft(rank, n, howmany, Phi, inembed, istride, idist, phi, onembed, ostride, odist, FFTW_BACKWARD, fftw_method);
     }
-    // Trafo in Y
+    // initialize the transformation in Y
     {
         int rank = 1; // 1-Dimensional
         int n[] = {static_cast<int>(sizeY)}; // number of elements in each rank, 1 rank => one element in this array, value = sizeY
@@ -61,8 +64,8 @@ TwoDimSPO::TwoDimSPO(size_t sizeX, size_t sizeY) :
         int ostride = istride;
         int* onembed = NULL;
 
-        _fftPlanForwardY  = fftw_plan_many_dft(rank, n, howmany, phi, inembed, istride, idist, Phi, onembed, ostride, odist, FFTW_FORWARD, FFTW_MEASURE);
-        _fftPlanBackwardY = fftw_plan_many_dft(rank, n, howmany, Phi, inembed, istride, idist, phi, onembed, ostride, odist, FFTW_BACKWARD, FFTW_MEASURE);
+        _fftPlanForwardY  = fftw_plan_many_dft(rank, n, howmany, phi, inembed, istride, idist, Phi, onembed, ostride, odist, FFTW_FORWARD, fftw_method);
+        _fftPlanBackwardY = fftw_plan_many_dft(rank, n, howmany, Phi, inembed, istride, idist, phi, onembed, ostride, odist, FFTW_BACKWARD, fftw_method);
     }
 
 
@@ -71,7 +74,7 @@ TwoDimSPO::TwoDimSPO(size_t sizeX, size_t sizeY) :
     const double delta_x(binSizeX());
     const double delta_y(binSizeY());
 
-    // initialize x and k
+    // initialize x and kx
     for (size_t i(0); i < _sizeX; ++i)
     {
         _x[i] = (i - _sizeX*0.5)*delta_x;
@@ -82,6 +85,7 @@ TwoDimSPO::TwoDimSPO(size_t sizeX, size_t sizeY) :
             _kx[i] = -static_cast<double>(_sizeX - i)*delta_kx;
     }
 
+    // initialize y and ky
     for (size_t i(0); i < _sizeY; ++i)
     {
         _y[i] = (i - _sizeY*0.5)*delta_y;
@@ -113,6 +117,24 @@ void TwoDimSPO::initialize(std::function<complex (const double&, const double&)>
 
 void TwoDimSPO::evolveStep(const double& dt)
 {
+    /**
+     * The basic scheme here is:
+     * - (half) time evolution in x-y
+     * - forward FFT for x
+     * - time evolution in kx-y
+     * - backward FFT for x
+     * - forward FFT for y
+     * - time evolution in x-ky
+     * - backward FFT for y
+     * - (half) time evolution in x-y
+     *
+     * Please note that the FFTW library does not normalize
+     * the values, requiring us to do it. The factor is 1/sqrt(sizeX)
+     * after transformations in x, 1/sqrt(sizeY) resp. for transformations
+     * in y. This normalization is mangled in the time evolution algorithm
+     * (but quiet obvious) to reduce the number of loops.
+     */
+
 #pragma omp parallel for
     for (size_t i = 0; i < _sizeX; ++i)
     {

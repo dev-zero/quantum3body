@@ -93,6 +93,9 @@ public:
 
     /**
      * Returns the current discretized phi.
+     * \return This returns the current phi in row-major format. This means
+     *         that the the value of phi at (x_i, y_j) can be found at
+     *         array[j + sizeY*i].
      */
     const complex* phi() const
     {
