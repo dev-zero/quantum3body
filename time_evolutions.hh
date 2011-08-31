@@ -2,7 +2,7 @@
 
 /*
  * Copyright (c) 2011 Tiziano Müller <tm@dev-zero.ch>
- *
+ *                    Christian Reinhardt
  *
  *
  */
