@@ -21,31 +21,92 @@
 typedef std::complex<double> complex;
 const static complex I(complex(0,1));
 
+/**
+ * This is the base interface for a TimeEvolution.
+ * Since the split of the operator can not be done at runtime, the
+ * user of this class has to do it manually and provide the implementations.
+ */
 struct TimeEvolution
 {
+    /**
+     * The time evolution in x-y-coordinates (aka "spatial evolution").
+     */
     virtual complex x_y_evolve(const double& x, const double& y, const double& dt) const = 0;
+    /**
+     * The time evolution in kx-y-coordinates (aka "momentum evolution for x").
+     */
     virtual complex kx_y_evolve(const double& kx, const double& y, const double& dt) const = 0;
+    /**
+     * The time evolution in x-ky-coordinates (aka "momentum evolution for y").
+     */
     virtual complex x_ky_evolve(const double& x, const double& ky, const double& dt) const = 0;
 };
+
+/**
+ * This is the driver for doing simulations using the Split-Operator (SPO) Method.
+ * The dimensions have to be defined at the time of creation. The reason is that the libraries
+ * used have to allocate and initialize storage.
+ */
 
 class TwoDimSPO
 {
 public:
+    /**
+     * Construct a new object.
+     * \param sizeX the number of bins in X-direction
+     * \param sizeY the number of bins in Y-direction
+     */
     TwoDimSPO(size_t sizeX, size_t sizeY);
+
     ~TwoDimSPO();
+
+    /**
+     * Set phi0 by providing a function which is being called for each (x,y).
+     * \param initialPhi This function should return the initial values for phi0,
+     *                   phi0(x_i,x_j) to be precise.
+     */
     void initialize(std::function<complex (const double&, const double&)> initialPhi);
+
+    /**
+     * Do one step in the simulation.
+     * \param dt The time delta being used to calculate the next iteration
+     */
     void evolveStep(const double& dt);
+
+    /**
+     * The time evolution functions can be exchanged at runtime, please
+     * read the documentation for the TimeEvolution struct to know what
+     * you have to provide
+     * \param te Provide a TimeEvolution object. Ownership remains at your side.
+     */
     void setTimeEvolution(const TimeEvolution* te);
 
+    /**
+     * Returns dx used in the calculations (this depends on the sizeX).
+     */
     double binSizeX() const;
+
+    /**
+     * Returns dy used in the calculations (this depends on the sizeY).
+     */
     double binSizeY() const;
 
+    /**
+     * Returns the current discretized phi.
+     */
     const complex* phi() const
     {
         return _phi;
     }
 
+    /**
+     * Returns the same size as given at initialization.
+     */
     size_t sizeX() const { return _sizeX; }
+
+    /**
+     * Returns the same size as given at initialization.
+     */
     size_t sizeY() const { return _sizeY; }
 
 private:
