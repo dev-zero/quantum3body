@@ -66,14 +66,8 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     _defaultTimeEvolution = new DefaultTimeEvolution;
     _quantum3bodyTimeEvolution = new Quantum3BodyTimeEvolution;
 
-//    _spatialPlot = new QuantumPixelPlot(this);
-//    _ui->spatialPlot->setModel(_spatialPlot);
-//    PixelDelegate* delegate(new PixelDelegate(this));
-//    _ui->spatialPlot->setItemDelegate(delegate);
-
     connect(_timer, SIGNAL(timeout()), SLOT(evolve()));
     connect(_ui->run, SIGNAL(toggled(bool)), SLOT(runSimulation(bool)));
-//    connect(_ui->pixelSize, SIGNAL(valueChanged(int)), delegate, SLOT(setPixelSize(int)));
     connect(_ui->reset, SIGNAL(pressed()), SLOT(resetSimulation()));
     connect(_ui->browsePictureFolder, SIGNAL(pressed()), SLOT(browsePictureFolder()));
     connect(_ui->initialTimeEvolution, SIGNAL(currentIndexChanged(int)), SLOT(setTimeEvolution(int)));
@@ -98,7 +92,6 @@ Quantum3BodySimulationWindow::~Quantum3BodySimulationWindow()
 void Quantum3BodySimulationWindow::resetSimulation()
 {
     statusBar()->showMessage("resetting the simulation, this may take a while...");
-//    _spatialPlot->setSpatialData(NULL, 0, 0);
 
     delete _simulation;
     delete _image;
@@ -211,10 +204,6 @@ void Quantum3BodySimulationWindow::evolve()
 void Quantum3BodySimulationWindow::plot()
 {
     const size_t gridSizeX(_simulation->sizeX()), gridSizeY(_simulation->sizeY());
-
-//    _spatialPlot->setSpatialData(_simulation->phi(), gridSizeX, gridSizeY);
-//    _ui->spatialPlot->resizeColumnsToContents();
-//    _ui->spatialPlot->resizeRowsToContents();
 
     double totalProbability(0.0);
     const double binSizeX(_simulation->binSizeX()), binSizeY(_simulation->binSizeY());
