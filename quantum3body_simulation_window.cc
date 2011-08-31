@@ -39,11 +39,11 @@ enum TimeEvolutionSelection
 
 Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     QMainWindow(p),
+    _simulation(nullptr),
     _timer(new QTimer(this)),
     _ui(new Ui::Quantum3BodyWindow),
     _currentIteration(0),
     _lastResetTimestamp(0),
-    _simulation(nullptr),
     _image(nullptr)
 {
     _ui->setupUi(this);
@@ -126,7 +126,7 @@ void Quantum3BodySimulationWindow::resetSimulation()
     }
 
     _simulation = new TwoDimSPO(gridSizeX, gridSizeY);
-    _image = new QImage(gridSizeY, gridSizeX, QImage::Format_RGB32);
+    _image = new QImage(static_cast<int>(gridSizeY), static_cast<int>(gridSizeX), QImage::Format_RGB32);
 
     auto phi0 = [&](const double& x, const double& y)->complex {
         double kx(_ui->initialPropagationX->value());
@@ -164,7 +164,7 @@ void Quantum3BodySimulationWindow::resetSimulation()
     _simulation->initialize(phi0);
 
     _currentIteration = 0;
-    _ui->currentIteration->setValue(_currentIteration);
+    _ui->currentIteration->setValue(static_cast<int>(_currentIteration));
 
     _lastResetTimestamp = QDateTime::currentDateTime().toTime_t();
 
@@ -190,14 +190,14 @@ void Quantum3BodySimulationWindow::runSimulation(bool run)
 void Quantum3BodySimulationWindow::evolve()
 {
     ++_currentIteration;
-    _ui->currentIteration->setValue(_currentIteration);
+    _ui->currentIteration->setValue(static_cast<int>(_currentIteration));
 
     _simulation->evolveStep(_ui->dtParameter->value());
 
     if (_currentIteration % _ui->updatePlotSteps->value() == 0)
         plot();
 
-    if (_currentIteration == _ui->numberOfIterations->value())
+    if (_currentIteration == static_cast<size_t>(_ui->numberOfIterations->value()))
         _ui->run->setChecked(false);
 }
 
@@ -221,7 +221,7 @@ void Quantum3BodySimulationWindow::plot()
     {
         for(size_t j(0); j < gridSizeY; ++j)
         {
-            _image->setPixel(i, j, rainbowColorMap(fabs(_simulation->phi()[j + gridSizeY*i])));
+            _image->setPixel(static_cast<int>(i), static_cast<int>(j), rainbowColorMap(fabs(_simulation->phi()[j + gridSizeY*i])));
         }
     }
     _imageLabel->setPixmap(QPixmap::fromImage(*_image));
