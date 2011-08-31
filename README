@@ -11,17 +11,18 @@ Requirements
 ------------
 
 The application is written in C++, using constructs and syntax from the
-new C++11 standard. You therefore need a recent compiler supporting the
-new standard. The application has been tested using gcc-4.6.1 with
-OpenMP support.
+new C++-11 standard. You therefore need a recent compiler supporting the
+new standard. The application has been successfully built using gcc-4.6.1 with
+OpenMP support under Linux.
 
 Furthermore you need:
-* qt 4.7.1 or newer
-* fftw 3.3.1_beta1 or newer, built with OpenMP support
-* cmake 2.8 or newer
+- Qt 4.7.1 or newer
+- fftw 3.3.1_beta1 or newer, built with OpenMP support
+- cmake 2.8 or newer
 
-You could use an older fftw and/or one without OpenMP-support you have to
-adjust the main.cc and the build flags.
+You could use an older fftw and/or one without OpenMP-support.
+In that case you have to disable the OpenMP support in CMakeLists.txt
+and remove the fftw_omp library from the linker in the same file.
 
 Build instructions
 ------------------
