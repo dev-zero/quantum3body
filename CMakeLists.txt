@@ -48,6 +48,13 @@ add_executable(quantum3body_simulation_TEST
 target_link_libraries(quantum3body_simulation_TEST
     -lfftw3)
 
+add_executable(two_dim_spo_TEST
+    two_dim_spo.cc
+    two_dim_spo_TEST.cc
+    )
+target_link_libraries(two_dim_spo_TEST
+    -lfftw3_omp -lfftw3)
+
 add_executable(fftw_separated_computation_TEST
     fftw_separated_computation_TEST.cc
     )
