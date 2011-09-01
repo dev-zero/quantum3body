@@ -12,6 +12,7 @@
 #include "two_dim_spo.hh"
 #include "time_evolutions.hh"
 #include "color_maps.hh"
+#include "plot_graphics_item.hh"
 
 #include "ui_quantum3body_simulation_window.h"
 
@@ -64,24 +65,24 @@ Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     _ui(new Ui::Quantum3BodyWindow),
     _currentIteration(0),
     _lastResetTimestamp(0),
+    _graphicsScene(new QGraphicsScene(this)),
+    _plotItem(new PlotGraphicsItem),
     _image(nullptr)
 {
     _ui->setupUi(this);
-
-    _imageLabel = new QLabel;
-    _imageLabel->setBackgroundRole(QPalette::Base);
-    _imageLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-    _imageLabel->setScaledContents(true);
-    
-    _ui->plotScrollArea->setBackgroundRole(QPalette::Dark);
-    _ui->plotScrollArea->setWidget(_imageLabel);
 
     _ui->fitToWindowAction->setCheckable(true);
     _ui->fitToWindowAction->setChecked(true);
     updateViewActions();
 
-     connect(_ui->fitToWindowAction, SIGNAL(triggered()), this, SLOT(viewFitToWindow()));
-     connect(_ui->normalSizeAction, SIGNAL(triggered()), this, SLOT(viewNormalSize()));
+    connect(_ui->fitToWindowAction, SIGNAL(triggered()), this, SLOT(viewFitToWindow()));
+    connect(_ui->normalSizeAction, SIGNAL(triggered()), this, SLOT(viewNormalSize()));
+
+    _graphicsScene->setItemIndexMethod(QGraphicsScene::NoIndex);
+    _graphicsScene->addItem(_plotItem);
+    _ui->graphicsView->setViewportUpdateMode(QGraphicsView::BoundingRectViewportUpdate);
+    _ui->graphicsView->setScene(_graphicsScene);
+
 
     _defaultTimeEvolution = new DefaultTimeEvolution;
     _quantum3bodyTimeEvolution = new Quantum3BodyTimeEvolution;
@@ -151,6 +152,8 @@ void Quantum3BodySimulationWindow::resetSimulation()
         _simulation = new TwoDimSPO(gridSizeX, gridSizeY);
         _image = new QImage(static_cast<int>(gridSizeY), static_cast<int>(gridSizeX), QImage::Format_RGB32);
     }
+
+    _plotItem->setData(_simulation->phi(), gridSizeX, gridSizeY);
 
     switch (_ui->initialPotential->currentIndex())
     {
@@ -230,31 +233,24 @@ void Quantum3BodySimulationWindow::plot()
 {
     const size_t gridSizeX(_simulation->sizeX()), gridSizeY(_simulation->sizeY());
 
-    double totalProbability(0.0);
     const double binSizeX(_simulation->binSizeX()), binSizeY(_simulation->binSizeY());
-    const complex* f(_simulation->phi());
-    for (size_t i(0); i < gridSizeX; ++i)
-    {
-        for (size_t j(0); j < gridSizeY; ++j)
-        {
-            totalProbability += binSizeX*binSizeY*fabs(f[j + gridSizeY*i])*fabs(f[j + gridSizeY*i]);
-        }
-    }
-    _ui->totalProbability->setValue(totalProbability);
+    const complex* phi(_simulation->phi());
 
-    for(size_t i(0); i < gridSizeX; ++i)
-    {
-        for(size_t j(0); j < gridSizeY; ++j)
-        {
-            _image->setPixel(static_cast<int>(i), static_cast<int>(j), rainbowColorMap(fabs(_simulation->phi()[j + gridSizeY*i])));
-        }
-    }
-    _imageLabel->setPixmap(QPixmap::fromImage(*_image));
-    if (!_ui->fitToWindowAction->isChecked())
-        _imageLabel->adjustSize();
+    double totalProbability(0.0);
+    for (size_t i(0); i < gridSizeX*gridSizeY; ++i)
+            totalProbability += binSizeX*binSizeY*fabs(phi[i])*fabs(phi[i]);
+    _ui->totalProbability->setValue(totalProbability);
 
     if (_ui->savePictures->isChecked())
     {
+        for(size_t i(0); i < gridSizeX; ++i)
+        {
+            for(size_t j(0); j < gridSizeY; ++j)
+            {
+                _image->setPixel(static_cast<int>(i), static_cast<int>(j), rainbowColorMap(fabs(phi[j + gridSizeY*i])));
+            }
+        }
+
         QDir pictureFolder(_ui->pictureFolder->text());
         if (pictureFolder.exists())
         {
@@ -291,13 +287,13 @@ void Quantum3BodySimulationWindow::setTimeEvolution(int selectedEvolutionAlgorit
 
 void Quantum3BodySimulationWindow::viewNormalSize()
 {
-    _imageLabel->adjustSize();
+    //
 }
 
 void Quantum3BodySimulationWindow::viewFitToWindow()
 {
     bool fitToWindow = _ui->fitToWindowAction->isChecked();
-    _ui->plotScrollArea->setWidgetResizable(fitToWindow);
+    //
     if (!fitToWindow) {
         viewNormalSize();
     }

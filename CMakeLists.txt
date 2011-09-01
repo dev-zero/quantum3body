@@ -30,6 +30,7 @@ add_executable(quantum3body-simulation
     ${quantum3body_simulation_MOC_SRCS} ${quantum3body_simulation_UIS_H}
     two_dim_spo.cc
     quantum3body_simulation_window.cc
+    plot_graphics_item.cc
     color_maps.cc
     main.cc
     )

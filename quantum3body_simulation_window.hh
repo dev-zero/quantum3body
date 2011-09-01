@@ -18,7 +18,8 @@ class QTimer;
 class TwoDimSPO;
 class DefaultTimeEvolution;
 class Quantum3BodyTimeEvolution;
-class QLabel;
+class PlotGraphicsItem;
+class QGraphicsScene;
 class QImage;
 
 namespace Ui
@@ -98,10 +99,10 @@ private:
 
     QTimer* _timer;
     Ui::Quantum3BodyWindow* _ui;
-//    QuantumPixelPlot* _spatialPlot;
     size_t _currentIteration;
     unsigned int _lastResetTimestamp;
-    QLabel* _imageLabel;
+    QGraphicsScene* _graphicsScene;
+    PlotGraphicsItem* _plotItem;
     QImage* _image;
 };
 
