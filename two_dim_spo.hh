@@ -115,12 +115,21 @@ public:
 private:
     const size_t _sizeX, _sizeY;
     std::vector<double> _x, _y, _kx, _ky;
+
     complex* _phi;
     complex* _Phi;
+    complex* _spatialEvolutionValues;
+
     const TimeEvolution* _te;
 
     fftw_plan _fftPlanForwardX, _fftPlanBackwardX;
     fftw_plan _fftPlanForwardY, _fftPlanBackwardY;    
+
+    void evolve_x_y_first(const double& dt);
+    void evolve_x_y_second(const double& dt);
+    void evolve_kx_y(const double& dt);
+    void evolve_x_ky(const double& dt);
+
 };
 
 #endif // TWO_DIM_SPO_HH

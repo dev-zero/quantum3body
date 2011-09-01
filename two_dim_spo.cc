@@ -29,6 +29,7 @@ TwoDimSPO::TwoDimSPO(size_t sizeX, size_t sizeY) :
     // allocate the arrays using fftw_malloc to ensure the array are on memory boundaries suited for using SIMD
     _phi = static_cast<complex*>(fftw_malloc(sizeof(fftw_complex) * sizeX * sizeY));
     _Phi = static_cast<complex*>(fftw_malloc(sizeof(fftw_complex) * sizeX * sizeY));
+    _spatialEvolutionValues = static_cast<complex*>(fftw_malloc(sizeof(fftw_complex) * sizeX * sizeY));
 
     fftw_complex* phi = reinterpret_cast<fftw_complex*>(_phi);
     fftw_complex* Phi = reinterpret_cast<fftw_complex*>(_Phi);
@@ -117,6 +118,53 @@ void TwoDimSPO::initialize(std::function<complex (const double&, const double&)>
     }
 }
 
+void TwoDimSPO::evolve_x_y_first(const double& dt)
+{
+#pragma omp parallel for
+    for (size_t i = 0; i < _sizeX*_sizeY; ++i)
+    {
+        _phi[i] *= _spatialEvolutionValues[i];
+    }
+}
+
+void TwoDimSPO::evolve_x_y_second(const double& dt)
+{
+#pragma omp parallel for
+    for (size_t i = 0; i < _sizeX*_sizeY; ++i)
+    {
+        _phi[i] /= sqrt(static_cast<double>(_sizeY));
+        _phi[i] *= _spatialEvolutionValues[i];
+    }
+}
+
+
+void TwoDimSPO::evolve_kx_y(const double& dt)
+{
+#pragma omp parallel for
+    for (size_t i = 0; i < _sizeX; ++i)
+    {
+        for (size_t j(0); j < _sizeY; ++j)
+        {
+            _Phi[j + _sizeY*i] /= sqrt(static_cast<double>(_sizeX));
+            _Phi[j + _sizeY*i] *= _te->kx_y_evolve(_kx[i], _y[j], dt);
+        }
+    }
+
+}
+
+void TwoDimSPO::evolve_x_ky(const double& dt)
+{
+#pragma omp parallel for
+    for (size_t i = 0; i < _sizeX; ++i)
+    {
+        for (size_t j(0); j < _sizeY; ++j)
+        {
+            _Phi[j + _sizeY*i] /= sqrt(static_cast<double>(_sizeY));
+            _Phi[j + _sizeY*i] *= _te->x_ky_evolve(_x[i], _ky[j], dt);
+        }
+    }
+}
+
 void TwoDimSPO::evolveStep(const double& dt)
 {
     /**
@@ -137,26 +185,11 @@ void TwoDimSPO::evolveStep(const double& dt)
      * (but quiet obvious) to reduce the number of loops.
      */
 
-#pragma omp parallel for
-    for (size_t i = 0; i < _sizeX; ++i)
-    {
-        for (size_t j(0); j < _sizeY; ++j)
-        {
-            _phi[j + _sizeY*i] *= _te->x_y_evolve(_x[i], _y[j], dt);
-        }
-    }
+    evolve_x_y_first(dt);
 
     fftw_execute(_fftPlanForwardX);
-
-#pragma omp parallel for
-    for (size_t i = 0; i < _sizeX; ++i)
-    {
-        for (size_t j(0); j < _sizeY; ++j)
-        {
-            _Phi[j + _sizeY*i] /= sqrt(static_cast<double>(_sizeX));
-            _Phi[j + _sizeY*i] *= _te->kx_y_evolve(_kx[i], _y[j], dt);
-        }
-    }
+    
+    evolve_kx_y(dt);
 
     fftw_execute(_fftPlanBackwardX);
 
@@ -165,26 +198,11 @@ void TwoDimSPO::evolveStep(const double& dt)
 
     fftw_execute(_fftPlanForwardY);
 
-    for (size_t i = 0; i < _sizeX; ++i)
-    {
-        for (size_t j(0); j < _sizeY; ++j)
-        {
-            _Phi[j + _sizeY*i] /= sqrt(static_cast<double>(_sizeY));
-            _Phi[j + _sizeY*i] *= _te->x_ky_evolve(_x[i], _ky[j], dt);
-        }
-    }
+    evolve_x_ky(dt);
 
     fftw_execute(_fftPlanBackwardY);
 
-#pragma omp parallel for
-    for (size_t i = 0; i < _sizeX; ++i)
-    {
-        for (size_t j(0); j < _sizeY; ++j)
-        {
-            _phi[j + _sizeY*i] /= sqrt(static_cast<double>(_sizeY));
-            _phi[j + _sizeY*i] *= _te->x_y_evolve(_x[i], _y[j], dt);
-        }
-    }
+    evolve_x_y_second(dt);
 }
 
 double TwoDimSPO::binSizeX() const
@@ -200,4 +218,14 @@ double TwoDimSPO::binSizeY() const
 void TwoDimSPO::setTimeEvolution(const TimeEvolution* te)
 {
     _te = te;
+
+    const double dt(0.005);
+
+    for (size_t i = 0; i < _sizeX; ++i)
+    {
+        for (size_t j(0); j < _sizeY; ++j)
+        {
+            _spatialEvolutionValues[j + _sizeY*i] = _te->x_y_evolve(_x[i], _y[j], dt);
+        }
+    }
 }
