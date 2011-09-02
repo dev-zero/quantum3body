@@ -183,7 +183,7 @@ void Quantum3BodySimulationWindow::resetSimulation()
         double ky(_ui->initialPropagationY->value());
         double dx(_ui->initialPositionX->value());
         double dy(_ui->initialPositionY->value());
-        return exp(-0.5*((x-dx)*(x-dx)+(y-dy)*(y-dy)) - complex(0,1)*ky*y - complex(0,1)*kx*x);
+        return exp(-0.5*((x-dx)*(x-dx)+(y-dy)*(y-dy)) + complex(0,1)*ky*y + complex(0,1)*kx*x);
     };
 
     _simulation->initialize(phi0);
@@ -246,7 +246,7 @@ void Quantum3BodySimulationWindow::plot()
     {
         for(size_t j(0); j < gridSizeY; ++j)
         {
-            _image->setPixel(static_cast<int>(i), static_cast<int>(j), rainbowColorMap(fabs(_simulation->phi()[j + gridSizeY*i])));
+            _image->setPixel(static_cast<int>(i), static_cast<int>(gridSizeY-1-j), rainbowColorMap(fabs(f[j + gridSizeY*i])));
         }
     }
     _imageLabel->setPixmap(QPixmap::fromImage(*_image));
