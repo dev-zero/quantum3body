@@ -60,12 +60,12 @@ enum Resolution
 
 Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
     QMainWindow(p),
-    _simulation(nullptr),
+    _simulation(NULL),
     _timer(new QTimer(this)),
     _ui(new Ui::Quantum3BodyWindow),
     _currentIteration(0),
     _lastResetTimestamp(0),
-    _image(nullptr)
+    _image(NULL)
 {
     _ui->setupUi(this);
 
@@ -147,7 +147,7 @@ void Quantum3BodySimulationWindow::resetSimulation()
     }
 
     // only reinitialize the simulation if the resolution changed
-    if (_simulation == nullptr || gridSizeX != _simulation->sizeX() || gridSizeY != _simulation->sizeY())
+    if (_simulation == NULL || gridSizeX != _simulation->sizeX() || gridSizeY != _simulation->sizeY())
     {
         delete _simulation;
         delete _image;

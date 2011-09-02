@@ -42,7 +42,7 @@ public:
     /**
      * Construct a new MainWindow object.
      */
-    Quantum3BodySimulationWindow(QWidget* p = nullptr);
+    Quantum3BodySimulationWindow(QWidget* p = NULL);
     ~Quantum3BodySimulationWindow();
 
 public slots:
