@@ -33,8 +33,7 @@ Build instructions
 
 The executables are placed in the build/ directory:
 * quantum3body-simulation .. this is the main application
-* quantum3body_simulation_TEST.cc .. a simple test application for the initial SPO code
-* fftw_separated_computation_TEST .. a test application to compare the 2x1D with the 2D FFT
+* two_dim_spo_TEST.cc .. a simple test application/example for the SPOM code
 
 Running the application
 -----------------------
