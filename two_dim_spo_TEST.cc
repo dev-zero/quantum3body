@@ -32,7 +32,7 @@ int main(int, char**)
     fftw_plan_with_nthreads(omp_get_num_threads());
 #endif
 
-    auto phi0 = [&](const double& x, const double& y)->complex {
+    std::function<complex (const double&, const double& y)> phi0 = [&](const double& x, const double& y)->complex {
         double kx(0.0);
         double ky(2.0*M_PI);
         double dx(0.0);

@@ -182,7 +182,7 @@ void Quantum3BodySimulationWindow::resetSimulation()
             assert(!"Selected time evolution not defined.");
     }
 
-    auto phi0 = [&](const double& x, const double& y)->complex {
+    std::function<complex (const double&, const double&)> phi0 = [&](const double& x, const double& y)->complex {
         double kx(_ui->initialPropagationX->value());
         double ky(_ui->initialPropagationY->value());
         double dx(_ui->initialPositionX->value());
