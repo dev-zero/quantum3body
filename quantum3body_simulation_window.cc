@@ -54,7 +54,8 @@ enum Resolution
     RESOLUTION_512x512   = 3,
     RESOLUTION_1024x1024 = 4,
     RESOLUTION_2048x2048 = 5,
-    RESOLUTION_4096x4096 = 6
+    RESOLUTION_4096x4096 = 6,
+    RESOLUTION_8192x8192 = 7
 };
 
 Quantum3BodySimulationWindow::Quantum3BodySimulationWindow(QWidget* p) :
@@ -138,8 +139,11 @@ void Quantum3BodySimulationWindow::resetSimulation()
         case RESOLUTION_4096x4096:
             gridSizeX = gridSizeY = 4096;
             break;
+        case RESOLUTION_8192x8192:
+            gridSizeX = gridSizeY = 8192;
+            break;
         default:
-            assert("!the selected grid size is not implemented");
+            assert(!"the selected grid size is not implemented");
     }
 
     // only reinitialize the simulation if the resolution changed
