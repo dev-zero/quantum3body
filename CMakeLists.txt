@@ -41,13 +41,6 @@ target_link_libraries(quantum3body-simulation
     -lfftw3_omp -lfftw3 -lm
     )
 
-add_executable(quantum3body_simulation_TEST
-    quantum3body_simulation.cc
-    quantum3body_simulation_TEST.cc
-    )
-target_link_libraries(quantum3body_simulation_TEST
-    -lfftw3)
-
 add_executable(two_dim_spo_TEST
     two_dim_spo.cc
     two_dim_spo_TEST.cc
