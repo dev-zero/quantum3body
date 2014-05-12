@@ -40,6 +40,8 @@ struct TimeEvolution
      * The time evolution in x-ky-coordinates (aka "momentum evolution for y").
      */
     virtual complex x_ky_evolve(const double& x, const double& ky, const double& dt) const = 0;
+
+    virtual ~TimeEvolution() = default;
 };
 
 /**
