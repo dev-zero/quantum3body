@@ -16,8 +16,8 @@
 // start forward declarations to reduce header dependencies
 class QTimer;
 class TwoDimSPO;
-class DefaultTimeEvolution;
-class Quantum3BodyTimeEvolution;
+struct DefaultTimeEvolution;
+struct Quantum3BodyTimeEvolution;
 class QLabel;
 class QImage;
 
